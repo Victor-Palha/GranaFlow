@@ -1,0 +1,23 @@
+defmodule GranaFlow.Transaction.Transaction do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  schema "transactions" do
+    field :name, :string
+    field :type, :string
+    field :amount, :decimal
+    field :transaction_date, :date
+    field :subtype, :string
+    field :proof_url, :string
+    field :wallet_id, :id
+
+    timestamps(type: :utc_datetime)
+  end
+
+  @doc false
+  def changeset(transaction, attrs) do
+    transaction
+    |> cast(attrs, [:name, :amount, :transaction_date, :type, :subtype, :proof_url])
+    |> validate_required([:name, :amount, :transaction_date, :type, :subtype, :proof_url])
+  end
+end

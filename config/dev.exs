@@ -2,10 +2,10 @@ import Config
 
 # Configure your database
 config :grana_flow, GranaFlow.Repo,
-  username: "postgres",
-  password: "postgres",
+  username: "granaflow",
+  password: "secret",
   hostname: "localhost",
-  database: "grana_flow_dev",
+  database: "granaflow_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10

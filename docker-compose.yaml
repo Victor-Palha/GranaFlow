@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  granaflow_db:
+    container_name: granaflow_db
+    image: bitnami/postgresql:latest
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: granaflow
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: granaflow_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - granaflow_db_data:/bitnami/postgresql
+
+volumes:
+  granaflow_db_data:
+    driver: local
