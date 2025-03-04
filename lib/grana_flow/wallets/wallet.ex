@@ -13,7 +13,8 @@ defmodule GranaFlow.Wallets.Wallet do
   @doc false
   def changeset(wallet, attrs) do
     wallet
-    |> cast(attrs, [:name, :type])
-    |> validate_required([:name, :type])
+    |> cast(attrs, [:name, :type, :user_id])
+    |> validate_required([:name, :type, :user_id])
+    |> foreign_key_constraint(:user_id, name: :wallets_user_id_fkey, message: "User does not exist")
   end
 end

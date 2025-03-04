@@ -5,7 +5,7 @@ defmodule GranaFlow.Repo.Migrations.CreateWallets do
     create table(:wallets) do
       add :name, :string
       add :type, :string
-      add :user_id, references(:users, on_delete: :nothing)
+      add :user_id, references(:users, on_delete: :delete_all)
 
       timestamps(type: :utc_datetime)
     end
