@@ -17,5 +17,6 @@ defmodule GranaFlow.Accounts.User do
     user
     |> cast(attrs, [:email, :name, :avatar_url, :provider, :provider_uid])
     |> validate_required([:email, :name, :avatar_url, :provider, :provider_uid])
+    |> unique_constraint([:provider, :provider_uid])
   end
 end

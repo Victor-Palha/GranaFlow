@@ -11,5 +11,7 @@ defmodule GranaFlow.Repo.Migrations.CreateUsers do
 
       timestamps(type: :utc_datetime)
     end
+
+    create unique_index(:users, [:provider, :provider_uid])
   end
 end

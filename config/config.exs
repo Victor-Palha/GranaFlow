@@ -31,6 +31,20 @@ config :grana_flow, GranaFlowWeb.Endpoint,
 # at the `config/runtime.exs`.
 config :grana_flow, GranaFlow.Mailer, adapter: Swoosh.Adapters.Local
 
+# Dependencies
+config :ueberauth, Ueberauth,
+  providers: [
+    google: {Ueberauth.Strategy.Google, [default_scope: "email profile"]},
+  ]
+
+config :ueberauth, Ueberauth.Strategy.Google.OAuth,
+  client_id: System.get_env("GOOGLE_CLIENT_ID"),
+  client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
+
+config :grana_flow, GranaFlow.Guardian,
+  issuer: "grana_flow",
+  secret_key: System.get_env("GUARDIAN_SECRET_KEY")
+
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",

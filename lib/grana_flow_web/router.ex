@@ -5,8 +5,25 @@ defmodule GranaFlowWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :auth do
+    plug Guardian.Plug.VerifyHeader, module: GranaFlow.Guardian, scheme: "Bearer"
+    plug Guardian.Plug.LoadResource, module: GranaFlow.Guardian
+    plug Guardian.Plug.EnsureAuthenticated, module: GranaFlow.Guardian
+  end
+
   scope "/api", GranaFlowWeb do
     pipe_through :api
+    pipe_through :auth
+
+    get "/test", AuthController, :test
+  end
+
+
+  scope "/auth", GranaFlowWeb do
+    pipe_through :api
+
+    get "/:provider", AuthController, :request
+    get "/:provider/callback", AuthController, :callback
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
