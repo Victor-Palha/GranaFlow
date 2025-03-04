@@ -15,4 +15,20 @@ defmodule GranaFlow.Services.Wallet do
     query = from(w in Wallet, where: w.user_id == ^user_id)
     Repo.aggregate(query, :count, :id)
   end
+
+  @spec find_and_delete(number(), String.t()) :: {:ok, Ecto.Schema.t()} | {:error, :not_found} | {:error, Ecto.Changeset.t()}
+  def find_and_delete(wallet_id, user_id) do
+    user_id = String.to_integer(user_id)
+
+    query = from(w in Wallet, where: w.user_id == ^user_id and w.id == ^wallet_id)
+
+    case Repo.one(query) do
+      nil -> {:error, :not_found}
+      wallet ->
+        case Repo.delete(wallet) do
+          {:ok, deleted_wallet} -> {:ok, deleted_wallet}
+          {:error, changeset} -> {:error, changeset}
+        end
+    end
+  end
 end
