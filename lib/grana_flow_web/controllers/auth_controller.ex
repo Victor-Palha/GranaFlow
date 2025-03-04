@@ -37,7 +37,7 @@ defmodule GranaFlowWeb.AuthController do
   end
 
   def test(conn, _params) do
-    t = Guardian.Plug.current_resource(conn)
-    json(conn, %{t: t})
+    %{id: id} = Guardian.Plug.current_resource(conn)
+    json(conn, %{message: id})
   end
 end

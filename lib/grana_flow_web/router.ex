@@ -16,6 +16,7 @@ defmodule GranaFlowWeb.Router do
     pipe_through :auth
 
     get "/test", AuthController, :test
+    post "/wallet", WalletController, :create
   end
 
 
