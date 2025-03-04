@@ -6,9 +6,9 @@ defmodule GranaFlowWeb.Router do
   end
 
   pipeline :auth do
-    plug Guardian.Plug.VerifyHeader, module: GranaFlow.Guardian, scheme: "Bearer"
-    plug Guardian.Plug.LoadResource, module: GranaFlow.Guardian
-    plug Guardian.Plug.EnsureAuthenticated, module: GranaFlow.Guardian
+    plug Guardian.Plug.VerifyHeader, module: GranaFlow.Guardian, scheme: "Bearer", error_handler: GranaFlowWeb.GuardianErrorHandler
+    plug Guardian.Plug.LoadResource, module: GranaFlow.Guardian, error_handler: GranaFlowWeb.GuardianErrorHandler
+    plug Guardian.Plug.EnsureAuthenticated, module: GranaFlow.Guardian, error_handler: GranaFlowWeb.GuardianErrorHandler
   end
 
   scope "/api", GranaFlowWeb do
