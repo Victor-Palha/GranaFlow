@@ -31,4 +31,18 @@ defmodule GranaFlow.Services.Wallet do
         end
     end
   end
+
+  @spec find_wallets_from_user(String.t()) :: {:ok, list(Wallet.t())} | {:error, :not_found}
+  def find_wallets_from_user(user_id) do
+    user_id = String.to_integer(user_id)
+
+    query = from(w in Wallet, where: w.user_id == ^user_id)
+    wallets = Repo.all(query)
+
+    if Enum.empty?(wallets) do
+      {:error, :not_found}
+    else
+      {:ok, wallets}
+    end
+  end
 end

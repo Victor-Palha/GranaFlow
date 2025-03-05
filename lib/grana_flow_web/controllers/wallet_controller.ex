@@ -40,4 +40,23 @@ defmodule GranaFlowWeb.WalletController do
         |> json(%{message: "Fail to delete waller", errors: changeset.errors})
     end
   end
+
+  @spec all(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def all(conn, _params) do
+    %{id: user_id} = Guardian.Plug.current_resource(conn)
+
+    case WalletService.find_wallets_from_user(user_id) do
+      {:error, :not_found} ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{message: "You don't have any wallets yet, please create a new one."})
+
+      {:ok, wallets} ->
+        wallets_mapped = Enum.map(wallets, fn w -> Map.from_struct(w) |> Map.delete(:__meta__) end)
+
+        conn
+        |> put_status(:ok)
+        |> json(%{wallets: wallets_mapped})
+    end
+  end
 end
