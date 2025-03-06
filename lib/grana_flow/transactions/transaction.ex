@@ -17,7 +17,8 @@ defmodule GranaFlow.Transaction.Transaction do
   @doc false
   def changeset(transaction, attrs) do
     transaction
-    |> cast(attrs, [:name, :amount, :transaction_date, :type, :subtype, :proof_url])
-    |> validate_required([:name, :amount, :transaction_date, :type, :subtype, :proof_url])
+    |> cast(attrs, [:name, :amount, :transaction_date, :type, :subtype, :proof_url, :wallet_id])
+    |> validate_required([:name, :amount, :transaction_date, :type, :subtype, :wallet_id])
+    |> foreign_key_constraint(:wallet_id, name: :transactions_wallet_id_fkey, message: "Wallet does not exist")
   end
 end

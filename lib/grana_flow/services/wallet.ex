@@ -45,4 +45,15 @@ defmodule GranaFlow.Services.Wallet do
       {:ok, wallets}
     end
   end
+
+  @spec find_by_id(number(), String.t()) :: {:ok, Wallet.t()} | {:error, :not_found}
+  def find_by_id(wallet_id, user_id) do
+    user_id = String.to_integer(user_id)
+    query = from(w in Wallet, where: w.user_id == ^user_id and w.id == ^wallet_id)
+
+    case Repo.one(query) do
+      nil -> {:error, :not_found}
+      wallet -> {:ok, wallet}
+    end
+  end
 end

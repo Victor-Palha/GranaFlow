@@ -9,7 +9,7 @@ defmodule GranaFlow.Repo.Migrations.CreateTransactions do
       add :type, :string
       add :subtype, :string
       add :proof_url, :string
-      add :wallet_id, references(:wallets, on_delete: :nothing)
+      add :wallet_id, references(:wallets,  on_delete: :delete_all)
 
       timestamps(type: :utc_datetime)
     end
