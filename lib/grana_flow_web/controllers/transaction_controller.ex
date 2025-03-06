@@ -14,10 +14,10 @@ defmodule GranaFlowWeb.TransactionController do
       {:ok, _wallet} ->
         {:ok, transaction} = TransactionService.create(%{
           name: name,
-          type: type,
+          type: String.upcase(type),
           amount: Decimal.new(amount),
           transaction_date: Date.from_iso8601!(transaction_date),
-          subtype: subtype,
+          subtype: String.upcase(subtype),
           proof_url: proof_url,
           wallet_id: wallet_id
         })
