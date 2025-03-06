@@ -29,4 +29,19 @@ defmodule GranaFlowWeb.TransactionController do
         |> json(%{message: "Transaction created with sucess", transaction: transaction_mapped})
     end
   end
+
+  def get(conn, %{"transaction_id" => id}) do
+    case TransactionService.get_by_id(id) do
+      {:error, :not_found} ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{message: "Transaction not found!"})
+      {:ok, transaction} ->
+        transaction_mapped = Map.from_struct(transaction) |> Map.delete(:__meta__)
+
+        conn
+        |> put_status(:ok)
+        |> json(%{transaction: transaction_mapped})
+    end
+  end
 end
