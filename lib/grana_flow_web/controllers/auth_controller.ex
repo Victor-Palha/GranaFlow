@@ -11,8 +11,17 @@ defmodule GranaFlowWeb.AuthController do
         {:ok, token, _claim} = Guardian.encode_and_sign(user)
 
         conn
-        |> put_status(:ok)
-        |> json(%{token: token, user: %{id: user.id, email: user.email, name: user.name, avatar_url: user.avatar_url}})
+        |> redirect(
+          external:
+            "exp://10.0.1.40:8081/auth/callback?token=#{token}" <>
+            "&id=#{user.id}" <>
+            "&email=#{URI.encode_www_form(user.email)}" <>
+            "&name=#{URI.encode_www_form(user.name)}" <>
+            "&avatar_url=#{URI.encode_www_form(user.avatar_url)}"
+        )
+        # conn
+        # |> put_status(:ok)
+        # |> json(%{token: token, user: %{id: user.id, email: user.email, name: user.name, avatar_url: user.avatar_url}})
 
       {:error, reason} ->
         conn
