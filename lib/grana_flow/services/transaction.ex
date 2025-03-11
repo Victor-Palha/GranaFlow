@@ -17,4 +17,8 @@ defmodule GranaFlow.Services.Transaction do
       transaction -> {:ok, transaction}
     end
   end
+
+  def all() do
+    Repo.all(Transaction)
+  end
 end

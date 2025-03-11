@@ -3,7 +3,7 @@ defmodule GranaFlowWeb.TransactionController do
   alias GranaFlow.Services.Transaction, as: TransactionService
   alias GranaFlow.Services.Wallet, as: WalletService
 
-  def create(conn, %{"name" => name, "type" => type, "amount" => amount, "transaction_date" => transaction_date, "subtype" => subtype, "proof_url" => proof_url, "wallet_id" => wallet_id}) do
+  def create(conn, %{"name" => name, "type" => type, "amount" => amount, "transaction_date" => transaction_date, "subtype" => subtype, "proof_url" => proof_url, "wallet_id" => wallet_id, "description" => description}) do
     %{id: user_id} = Guardian.Plug.current_resource(conn)
 
     case WalletService.find_by_id(wallet_id, user_id) do
@@ -19,7 +19,8 @@ defmodule GranaFlowWeb.TransactionController do
           transaction_date: Date.from_iso8601!(transaction_date),
           subtype: String.upcase(subtype),
           proof_url: proof_url,
-          wallet_id: wallet_id
+          wallet_id: wallet_id,
+          description: description
         })
 
         transaction_mapped = Map.from_struct(transaction) |> Map.delete(:__meta__)
@@ -43,5 +44,13 @@ defmodule GranaFlowWeb.TransactionController do
         |> put_status(:ok)
         |> json(%{transaction: transaction_mapped})
     end
+  end
+
+  def all(conn, _params) do
+    transactions = TransactionService.all()
+    transactions_mapped = Enum.map(transactions, fn t -> Map.from_struct(t) |> Map.delete(:__meta__) end)
+    conn
+    |> put_status(:ok)
+    |> json(%{transactions: transactions_mapped})
   end
 end
