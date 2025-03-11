@@ -47,11 +47,18 @@ defmodule GranaFlowWeb.TransactionController do
     end
   end
 
-  def all(conn, _params) do
-    transactions = TransactionService.all()
-    transactions_mapped = Enum.map(transactions, fn t -> Map.from_struct(t) |> Map.delete(:__meta__) end)
-    conn
-    |> put_status(:ok)
-    |> json(%{transactions: transactions_mapped})
+  def all(conn, %{"wallet_id" => wallet_id}) do
+    %{id: user_id} = Guardian.Plug.current_resource(conn)
+    case TransactionService.all(user_id, wallet_id) do
+      {:error, :not_found} ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{message: "Transactions not found!"})
+      {:ok, transactions} ->
+        transactions_mapped = Enum.map(transactions, fn t -> Map.from_struct(t) |> Map.delete(:__meta__) end)
+        conn
+        |> put_status(:ok)
+        |> json(%{transactions: transactions_mapped})
+    end
   end
 end

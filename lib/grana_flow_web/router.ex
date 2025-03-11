@@ -21,6 +21,7 @@ defmodule GranaFlowWeb.Router do
     get "/wallet", WalletController, :all
     post "/transaction/single", TransactionController, :create
     get "/transaction/:transaction_id", TransactionController, :get
+    get "/transaction", TransactionController, :all
   end
 
 

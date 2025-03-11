@@ -1,5 +1,6 @@
 defmodule GranaFlow.Services.Transaction do
-  alias GranaFlow.{Repo, Transaction.Transaction}
+  import Ecto.Query
+  alias GranaFlow.{Repo, Transaction.Transaction, Wallets.Wallet}
 
   @spec create(map()) :: {:ok, Ecto.Schema.t()} | {:error, Ecto.Changeset.t()}
   def create(attrs) do
@@ -18,7 +19,17 @@ defmodule GranaFlow.Services.Transaction do
     end
   end
 
-  def all() do
-    Repo.all(Transaction)
+  def all(user_id, wallet_id) do
+    query = from(w in Wallet, where: w.user_id == ^user_id and w.id == ^wallet_id)
+
+    case Repo.one(query) do
+      nil ->
+        {:error, :not_found}
+
+      wallet ->
+        transactions_query = from(t in Transaction, where: t.wallet_id == ^wallet.id)
+        transactions = Repo.all(transactions_query)
+        {:ok, transactions}
+    end
   end
 end
