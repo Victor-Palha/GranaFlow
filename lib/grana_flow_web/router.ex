@@ -19,7 +19,7 @@ defmodule GranaFlowWeb.Router do
     post "/wallet", WalletController, :create
     delete "/wallet", WalletController, :delete
     get "/wallet", WalletController, :all
-    post "/transaction", TransactionController, :create
+    post "/transaction/single", TransactionController, :create
     get "/transaction/:transaction_id", TransactionController, :get
   end
 

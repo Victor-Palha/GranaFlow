@@ -12,11 +12,12 @@ defmodule GranaFlowWeb.TransactionController do
         |> put_status(:not_found)
         |> json(%{message: "Wallet not found..."})
       {:ok, _wallet} ->
+        {:ok, dt, _} = DateTime.from_iso8601(transaction_date)
         {:ok, transaction} = TransactionService.create(%{
           name: name,
           type: String.upcase(type),
-          amount: Decimal.new(amount),
-          transaction_date: Date.from_iso8601!(transaction_date),
+          amount: amount,
+          transaction_date: dt,
           subtype: String.upcase(subtype),
           proof_url: proof_url,
           wallet_id: wallet_id,
