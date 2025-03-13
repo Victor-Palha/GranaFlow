@@ -34,22 +34,37 @@ defmodule GranaFlow.Services.Transaction do
     end
   end
 
-  @spec all(String.t(), String.t(), number() | nil) :: {:error, :not_found} | {:ok, list(Ecto.Schema.t())}
-  def all(user_id, wallet_id, limit \\ nil) do
+  @spec all(String.t(), String.t(), number() | nil, boolean()) :: {:error, :not_found} | {:ok, list(Ecto.Schema.t())}
+  def all(user_id, wallet_id, limit \\ nil, is_until_today \\ false) do
     query = from(w in Wallet, where: w.user_id == ^user_id and w.id == ^wallet_id)
 
     case Repo.one(query) do
       nil -> {:error, :not_found}
       wallet ->
         base_query = from(t in Transaction, where: t.wallet_id == ^wallet.id)
+
+        # Adiciona a ordenação das transações pela data, do mais recente para o mais antigo
+        ordered_query = from(t in base_query, order_by: [desc: t.transaction_date])
+
+        # Adiciona o filtro para transações até a data atual, se is_until_today for true
+        final_query =
+          if is_until_today do
+            today = Date.utc_today()  # Obter a data atual
+            from(t in ordered_query, where: t.transaction_date <= ^today)
+          else
+            ordered_query
+          end
+
+        # Se houver um limite, aplica o limite na consulta
         final_query =
           if limit do
-            from(t in base_query, limit: ^limit)
+            from(t in final_query, limit: ^limit)
           else
-            base_query
+            final_query
           end
 
         {:ok, Repo.all(final_query)}
     end
   end
+
 end

@@ -107,7 +107,9 @@ defmodule GranaFlowWeb.TransactionController do
   def all(conn, %{"wallet_id" => wallet_id} = params) do
     %{id: user_id} = Guardian.Plug.current_resource(conn)
     limit = Map.get(params, "limit") |> maybe_parse_int()
-    case TransactionService.all(user_id, wallet_id, limit) do
+    is_until_today = Map.get(params, "is_until_today")
+    IO.inspect(is_until_today)
+    case TransactionService.all(user_id, wallet_id, limit, is_until_today) do
       {:error, :not_found} ->
         conn
         |> put_status(:not_found)
