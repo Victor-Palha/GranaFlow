@@ -42,20 +42,15 @@ defmodule GranaFlow.Services.Transaction do
       nil -> {:error, :not_found}
       wallet ->
         base_query = from(t in Transaction, where: t.wallet_id == ^wallet.id)
-
-        # Adiciona a ordenação das transações pela data, do mais recente para o mais antigo
         ordered_query = from(t in base_query, order_by: [desc: t.transaction_date])
-
-        # Adiciona o filtro para transações até a data atual, se is_until_today for true
         final_query =
           if is_until_today do
-            today = Date.utc_today()  # Obter a data atual
+            today = Date.utc_today()
             from(t in ordered_query, where: t.transaction_date <= ^today)
           else
             ordered_query
           end
 
-        # Se houver um limite, aplica o limite na consulta
         final_query =
           if limit do
             from(t in final_query, limit: ^limit)
