@@ -131,6 +131,18 @@ defmodule GranaFlowWeb.TransactionController do
     |> json(%{current_balance: balance})
   end
 
+  def show(conn, %{"wallet_id" => wallet_id, "year" => year_str}) do
+    %{id: user_id} = Guardian.Plug.current_resource(conn)
+
+    year = String.to_integer(year_str)
+
+    case TransactionService.get_annual_report(user_id, wallet_id, year) do
+      {:ok, report} -> json(conn, %{data: report})
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "Wallet not found."})
+    end
+  end
+
   defp maybe_parse_int(nil), do: nil
   defp maybe_parse_int(""), do: nil
   defp maybe_parse_int(str) when is_binary(str) do

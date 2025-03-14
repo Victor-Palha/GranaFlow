@@ -132,4 +132,47 @@ defmodule GranaFlow.Services.Transaction do
         {:ok, balance}
     end
   end
+
+  # @spec get_annual_report(String.t(), String.t(), number())
+  def get_annual_report(user_id, wallet_id, year) do
+    with {:ok, wallet} <- get_wallet(user_id, wallet_id) do
+      start_date = Date.new!(year, 1, 1)
+      end_date = Date.new!(year, 12, 31)
+
+      query = from(
+        t in Transaction,
+        where: t.wallet_id == ^wallet.id and t.transaction_date >= ^start_date and t.transaction_date <= ^end_date,
+        select: {t.type, t.transaction_date, t.amount}
+      )
+
+      transactions = Repo.all(query)
+      grouped = Enum.reduce(transactions, %{}, fn {type, date, amount}, acc ->
+        month = date.month
+        current = Map.get(acc, month, %{income: Decimal.new(0), outcome: Decimal.new(0)})
+        updated =
+          case type do
+            "INCOME" -> %{current | income: Decimal.add(current.income, amount)}
+            "OUTCOME" -> %{current | outcome: Decimal.add(current.outcome, amount)}
+            _ -> current
+          end
+
+        Map.put(acc, month, updated)
+      end)
+
+      full_report =
+        Enum.map(1..12, fn month ->
+          month_data = Map.get(grouped, month, %{income: Decimal.new(0), outcome: Decimal.new(0)})
+          final_balance = Decimal.sub(month_data.income, month_data.outcome)
+
+          %{
+            month: month,
+            income: Decimal.to_string(month_data.income),
+            outcome: Decimal.to_string(month_data.outcome),
+            final_balance: Decimal.to_string(final_balance)
+          }
+        end)
+      IO.inspect(full_report)
+      {:ok, full_report}
+    end
+  end
 end
