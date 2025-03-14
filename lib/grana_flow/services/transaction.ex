@@ -106,4 +106,30 @@ defmodule GranaFlow.Services.Transaction do
 
   defp limit_if_needed(nil), do: nil
   defp limit_if_needed(limit), do: limit
+
+  @spec current_balance(String.t(), String.t()) :: {:ok, number()}
+  def current_balance(user_id, wallet_id) do
+    case get_wallet(user_id, wallet_id) do
+      {:error, :not_found} -> {:ok, 0.0}
+      {:ok, wallet} ->
+        today = Date.utc_today()
+
+        incomes_query = from(
+          t in Transaction,
+          where: t.wallet_id == ^wallet.id and t.transaction_date <= ^today and t.type == "INCOME",
+          select: coalesce(sum(t.amount), 0)
+        )
+
+        outcomes_query = from(
+          t in Transaction,
+          where: t.wallet_id == ^wallet.id and t.transaction_date <= ^today and t.type == "OUTCOME",
+          select: coalesce(sum(t.amount), 0)
+        )
+
+        income = Repo.one(incomes_query)
+        outcome = Repo.one(outcomes_query)
+        balance = Decimal.sub(income, outcome)
+        {:ok, balance}
+    end
+  end
 end

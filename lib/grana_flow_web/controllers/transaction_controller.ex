@@ -123,6 +123,14 @@ defmodule GranaFlowWeb.TransactionController do
     end
   end
 
+  def balance(conn, %{"wallet_id" => wallet_id}) do
+    %{id: user_id} = Guardian.Plug.current_resource(conn)
+    {:ok, balance} = TransactionService.current_balance(user_id, wallet_id)
+    conn
+    |> put_status(:ok)
+    |> json(%{current_balance: balance})
+  end
+
   defp maybe_parse_int(nil), do: nil
   defp maybe_parse_int(""), do: nil
   defp maybe_parse_int(str) when is_binary(str) do
