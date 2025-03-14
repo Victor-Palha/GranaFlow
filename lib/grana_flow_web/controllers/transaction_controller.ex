@@ -107,9 +107,10 @@ defmodule GranaFlowWeb.TransactionController do
   def all(conn, %{"wallet_id" => wallet_id} = params) do
     %{id: user_id} = Guardian.Plug.current_resource(conn)
     limit = Map.get(params, "limit") |> maybe_parse_int()
-    is_until_today = Map.get(params, "is_until_today")
-    IO.inspect(is_until_today)
-    case TransactionService.all(user_id, wallet_id, limit, is_until_today) do
+    is_until_today = Map.get(params, "is_until_today") |> maybe_parse_boolean()
+    is_after_today = Map.get(params, "is_after_today") |> maybe_parse_boolean()
+    type_transaction = Map.get(params, "type_transaction") |> maybe_parse_type()
+    case TransactionService.all(user_id, wallet_id, limit, is_until_today, is_after_today, type_transaction) do
       {:error, :not_found} ->
         conn
         |> put_status(:not_found)
@@ -130,6 +131,17 @@ defmodule GranaFlowWeb.TransactionController do
       :error -> nil
     end
   end
+
+  defp maybe_parse_boolean(value) when (is_nil(value)), do: false
+  defp maybe_parse_boolean(""), do: false
+  defp maybe_parse_boolean("false"), do: false
+  defp maybe_parse_boolean("true"), do: true
+  defp maybe_parse_boolean(_), do: true
+
+  defp maybe_parse_type(value) when (is_nil(value)), do: nil
+  defp maybe_parse_type("INCOME"), do: "INCOME"
+  defp maybe_parse_type("OUTCOME"), do: "OUTCOME"
+  defp maybe_parse_type(_), do: nil
 
   defp generate_monthly_dates(start_dt, end_dt) do
     start_date = DateTime.to_date(start_dt)
