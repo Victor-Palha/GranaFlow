@@ -8,12 +8,14 @@ defmodule GranaFlowWeb.AuthController do
   def callback(%{assigns: %{ueberauth_auth: auth}} = conn, _params) do
     case find_or_create_user(auth) do
       {:ok, user} ->
-        {:ok, token, _claim} = Guardian.encode_and_sign(user)
+        {:ok, main_token, _claims_main} = GranaFlow.Guardian.generate_token(user, "main")
+        {:ok, refresh_token, _claims_refresh} = GranaFlow.Guardian.generate_token(user, "refresh")
 
         conn
         |> redirect(
           external:
-            "exp://10.0.1.40:8081/auth/callback?token=#{token}" <>
+            "exp://10.0.1.40:8081/auth/callback?token=#{main_token}" <>
+            "&refresh_token=#{refresh_token}" <>
             "&id=#{user.id}" <>
             "&email=#{URI.encode_www_form(user.email)}" <>
             "&name=#{URI.encode_www_form(user.name)}" <>
@@ -46,18 +48,23 @@ defmodule GranaFlowWeb.AuthController do
   end
 
   def validate_token(conn, _params) do
-    %{id: id} = Guardian.Plug.current_resource(conn)
-    case User.get_by_id(id) do
+    with %{id: id} <- Guardian.Plug.current_resource(conn), {:ok, user} <- User.get_by_id(id) do
+      {:ok, token, _claims} = GranaFlow.Guardian.generate_token(user, "main")
+      {:ok, refresh_token, _claims_refresh} = GranaFlow.Guardian.generate_token(user, "refresh")
+
+      conn
+      |> put_status(:ok)
+      |> json(%{token: token, refresh_token: refresh_token, user_id: user.id})
+    else
+      nil ->
+        conn
+        |> put_status(:unauthorized)
+        |> json(%{message: "Invalid token"})
+
       {:error, :not_found} ->
         conn
         |> put_status(:not_found)
         |> json(%{message: "User not found"})
-      {:ok, user} ->
-        {:ok, token, _claim} = Guardian.encode_and_sign(user)
-
-        conn
-        |> put_status(:ok)
-        |> json(%{token: token, user_id: id})
     end
   end
 

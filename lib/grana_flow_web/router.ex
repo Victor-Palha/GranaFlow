@@ -11,9 +11,18 @@ defmodule GranaFlowWeb.Router do
     plug Guardian.Plug.EnsureAuthenticated, module: GranaFlow.Guardian, error_handler: GranaFlowWeb.GuardianErrorHandler
   end
 
+  pipeline :refresh do
+    plug GranaFlowWeb.Plugs.EnsureTokenType, "refresh"
+  end
+
+  pipeline :main do
+    plug GranaFlowWeb.Plugs.EnsureTokenType, "main"
+  end
+
   scope "/api", GranaFlowWeb do
     pipe_through :api
     pipe_through :auth
+    pipe_through :main
 
     get "/test", AuthController, :test
     post "/wallet", WalletController, :create
@@ -26,7 +35,6 @@ defmodule GranaFlowWeb.Router do
     get "/transaction/balance", TransactionController, :balance
     get "/transaction/:transaction_id", TransactionController, :get
     get "/transaction", TransactionController, :all
-    get "/refresh", AuthController, :validate_token
   end
 
 
@@ -35,6 +43,14 @@ defmodule GranaFlowWeb.Router do
 
     get "/:provider", AuthController, :request
     get "/:provider/callback", AuthController, :callback
+  end
+
+  scope "/refresh", GranaFlowWeb do
+    pipe_through :api
+    pipe_through :auth
+    pipe_through :refresh
+
+    get "/", AuthController, :validate_token
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

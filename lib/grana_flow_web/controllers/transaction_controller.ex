@@ -138,8 +138,6 @@ defmodule GranaFlowWeb.TransactionController do
 
     case TransactionService.get_annual_report(user_id, wallet_id, year) do
       {:ok, report} -> json(conn, %{report: report})
-      {:error, :not_found} ->
-        conn |> put_status(:not_found) |> json(%{error: "Wallet not found."})
     end
   end
 
