@@ -12,4 +12,12 @@ defmodule GranaFlow.Services.User do
   def get_by_provider(provider, provider_uid) do
     Repo.get_by(User, provider: provider, provider_uid: provider_uid)
   end
+
+  @spec get_by_id(String.t()) :: {:error, :not_found} | {:ok, Ecto.Schema.t()}
+  def get_by_id(user_id) do
+    case Repo.get(User, user_id) do
+      nil -> {:error, :not_found}
+      user -> {:ok, user}
+    end
+  end
 end

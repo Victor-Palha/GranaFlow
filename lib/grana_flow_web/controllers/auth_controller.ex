@@ -45,6 +45,22 @@ defmodule GranaFlowWeb.AuthController do
     end
   end
 
+  def validate_token(conn, _params) do
+    %{id: id} = Guardian.Plug.current_resource(conn)
+    case User.get_by_id(id) do
+      {:error, :not_found} ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{message: "User not found"})
+      {:ok, user} ->
+        {:ok, token, _claim} = Guardian.encode_and_sign(user)
+
+        conn
+        |> put_status(:ok)
+        |> json(%{token: token, user_id: id})
+    end
+  end
+
   def test(conn, _params) do
     %{id: id} = Guardian.Plug.current_resource(conn)
     json(conn, %{message: id})
