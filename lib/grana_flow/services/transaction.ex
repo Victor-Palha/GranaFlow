@@ -153,115 +153,172 @@ defmodule GranaFlow.Services.Transaction do
       start_date = Date.new!(year, 1, 1)
       end_date = Date.new!(year, 12, 31)
 
-      query =
-        from(
-          t in Transaction,
-          where:
-            t.wallet_id == ^wallet.id and t.transaction_date >= ^start_date and
-              t.transaction_date <= ^end_date,
-          select: {t.type, t.transaction_date, t.amount}
-        )
-
-      transactions = Repo.all(query)
-
-      grouped =
-        Enum.reduce(transactions, %{}, fn {type, date, amount}, acc ->
-          month = date.month
-          current = Map.get(acc, month, %{income: Decimal.new(0), outcome: Decimal.new(0)})
-
-          updated =
-            case type do
-              "INCOME" -> %{current | income: Decimal.add(current.income, amount)}
-              "OUTCOME" -> %{current | outcome: Decimal.add(current.outcome, amount)}
-              _ -> current
-            end
-
-          Map.put(acc, month, updated)
-        end)
-
-        full_report =
-          Enum.reduce(1..12, {[], Decimal.new(0)}, fn month, {acc, previous_balance} ->
-            month_data = Map.get(grouped, month, %{income: Decimal.new(0), outcome: Decimal.new(0)})
-            month_balance = Decimal.sub(month_data.income, month_data.outcome)
-            cumulative_balance = Decimal.add(previous_balance, month_balance)
-
-            updated_month = %{
-              month: month,
-              income: Decimal.to_string(month_data.income),
-              outcome: Decimal.to_string(month_data.outcome),
-              final_balance: Decimal.to_string(cumulative_balance)
-            }
-
-            {[updated_month | acc], cumulative_balance}
-          end)
-          |> elem(0)
-          |> Enum.reverse()
+      transactions = fetch_annual_transactions(wallet.id, start_date, end_date)
+      grouped = group_transactions_by_month(transactions)
+      full_report = build_full_annual_report(grouped)
 
       {:ok, full_report}
     end
   end
 
-  @spec get_month_report(String.t(), String.t(), number(), number()) :: {:ok, map()}
-  def get_month_report(user_id, wallet_id, year, month) do
-    with {:ok, wallet} <- get_wallet(user_id, wallet_id) do
-      {:ok, start_date} = Date.new(year, month, 1)
-      end_date = Date.end_of_month(start_date)
-
-      query = from( t in Transaction,
-        where:
-          t.wallet_id == ^wallet.id and
-          t.transaction_date >= ^start_date and
+  @spec fetch_annual_transactions(binary(), Date.t(), Date.t()) ::
+          list({String.t(), Date.t(), Decimal.t()})
+  defp fetch_annual_transactions(wallet_id, start_date, end_date) do
+    from(
+      t in Transaction,
+      where:
+        t.wallet_id == ^wallet_id and t.transaction_date >= ^start_date and
           t.transaction_date <= ^end_date,
-        select: {t.type, t.subtype, t.amount}
-      )
+      select: {t.type, t.transaction_date, t.amount}
+    )
+    |> Repo.all()
+  end
 
-      transactions = Repo.all(query)
+  @spec group_transactions_by_month(list({String.t(), Date.t(), Decimal.t()})) ::
+          %{optional(non_neg_integer()) => %{income: Decimal.t(), outcome: Decimal.t()}}
+  defp group_transactions_by_month(transactions) do
+    Enum.reduce(transactions, %{}, fn {type, date, amount}, acc ->
+      month = date.month
+      current = Map.get(acc, month, %{income: Decimal.new(0), outcome: Decimal.new(0)})
 
-      {incomes, outcomes} = Enum.split_with(transactions, fn {type, _, _} -> type == "INCOME" end)
+      updated =
+        case type do
+          "INCOME" -> %{current | income: Decimal.add(current.income, amount)}
+          "OUTCOME" -> %{current | outcome: Decimal.add(current.outcome, amount)}
+          _ -> current
+        end
 
-      total_income = Enum.reduce(incomes, Decimal.new(0), fn {_, _, amount}, acc ->
-        Decimal.add(acc, amount)
-      end)
+      Map.put(acc, month, updated)
+    end)
+  end
 
-      total_outcome = Enum.reduce(outcomes, Decimal.new(0), fn {_, _, amount}, acc ->
-        Decimal.add(acc, amount)
-      end)
+  @spec build_full_annual_report(%{
+          optional(non_neg_integer()) => %{income: Decimal.t(), outcome: Decimal.t()}
+        }) :: list(map())
+  defp build_full_annual_report(grouped_data) do
+    1..12
+    |> Enum.reduce({[], Decimal.new(0)}, fn month, {acc, previous_balance} ->
+      month_data =
+        Map.get(grouped_data, month, %{income: Decimal.new(0), outcome: Decimal.new(0)})
 
-      grouped_subtypes = Enum.group_by(transactions, fn {type, subtype, _} -> {type, subtype} end)
+      month_balance = Decimal.sub(month_data.income, month_data.outcome)
+      cumulative_balance = Decimal.add(previous_balance, month_balance)
 
-      subtypes_report =
-        grouped_subtypes
-        |> Enum.map(fn {{type, subtype}, list} ->
-          total = Enum.reduce(list, Decimal.new(0), fn {_, _, amount}, acc -> Decimal.add(acc, amount) end)
+      updated_month = %{
+        month: month,
+        income: Decimal.to_string(month_data.income),
+        outcome: Decimal.to_string(month_data.outcome),
+        final_balance: Decimal.to_string(cumulative_balance)
+      }
 
-          percentage =
-            case type do
-              "INCOME" ->
-                if Decimal.compare(total_income, 0) == :eq, do: Decimal.new(0),
-                else: Decimal.div(total, total_income) |> Decimal.mult(100)
+      {[updated_month | acc], cumulative_balance}
+    end)
+    |> elem(0)
+    |> Enum.reverse()
+  end
 
-              "OUTCOME" ->
-                if Decimal.compare(total_outcome, 0) == :eq, do: Decimal.new(0),
-                else: Decimal.div(total, total_outcome) |> Decimal.mult(100)
-
-              _ -> Decimal.new(0)
-            end
-
-          %{
-            type: type,
-            subtype: subtype,
-            total: Decimal.to_string(total),
-            percentage: Decimal.to_string(Decimal.round(percentage, 2))
-          }
-        end)
-
+  @spec get_month_report(String.t(), String.t(), integer(), integer()) :: {:ok, map()}
+  def get_month_report(user_id, wallet_id, year, month) do
+    with {:ok, wallet} <- get_wallet(user_id, wallet_id),
+         {:ok, start_date, end_date} <- build_date_range(year, month),
+         {transactions_report, all_transactions} <-
+           fetch_wallet_transactions(wallet.id, start_date, end_date),
+         {total_income, total_outcome} <- calculate_totals(transactions_report),
+         subtypes_report <-
+           build_subtypes_report(transactions_report, total_income, total_outcome) do
       {:ok,
        %{
          total_income: Decimal.to_string(total_income),
          total_outcome: Decimal.to_string(total_outcome),
          final_balance: Decimal.to_string(Decimal.sub(total_income, total_outcome)),
-         subtypes: subtypes_report
+         subtypes: subtypes_report,
+         transactions: serialize_transactions(all_transactions)
        }}
     end
+  end
+
+  @spec build_date_range(integer(), integer()) :: {:ok, Date.t(), Date.t()}
+  defp build_date_range(year, month) do
+    with {:ok, start_date} <- Date.new(year, month, 1) do
+      end_date = Date.end_of_month(start_date)
+      {:ok, start_date, end_date}
+    end
+  end
+
+  @spec fetch_wallet_transactions(binary(), Date.t(), Date.t()) ::
+          {list({String.t(), String.t(), Decimal.t()}), list(Transaction.t())}
+  defp fetch_wallet_transactions(wallet_id, start_date, end_date) do
+    query =
+      from(t in Transaction,
+        where:
+          t.wallet_id == ^wallet_id and
+            t.transaction_date >= ^start_date and
+            t.transaction_date <= ^end_date
+      )
+
+    all_transactions = Repo.all(query)
+
+    report_data =
+      Enum.map(all_transactions, fn %Transaction{type: type, subtype: subtype, amount: amount} ->
+        {type, subtype, amount}
+      end)
+
+    {report_data, all_transactions}
+  end
+
+  @spec calculate_totals(list({String.t(), String.t(), Decimal.t()})) ::
+          {Decimal.t(), Decimal.t()}
+  defp calculate_totals(transactions) do
+    {incomes, outcomes} = Enum.split_with(transactions, fn {type, _, _} -> type == "INCOME" end)
+
+    total_income =
+      Enum.reduce(incomes, Decimal.new(0), fn {_, _, amount}, acc -> Decimal.add(acc, amount) end)
+
+    total_outcome =
+      Enum.reduce(outcomes, Decimal.new(0), fn {_, _, amount}, acc -> Decimal.add(acc, amount) end)
+
+    {total_income, total_outcome}
+  end
+
+  @spec build_subtypes_report(
+          list({String.t(), String.t(), Decimal.t()}),
+          Decimal.t(),
+          Decimal.t()
+        ) :: list(map())
+  defp build_subtypes_report(transactions, total_income, total_outcome) do
+    transactions
+    |> Enum.group_by(fn {type, subtype, _} -> {type, subtype} end)
+    |> Enum.map(fn {{type, subtype}, list} ->
+      total =
+        Enum.reduce(list, Decimal.new(0), fn {_, _, amount}, acc -> Decimal.add(acc, amount) end)
+
+      percentage =
+        case type do
+          "INCOME" ->
+            if Decimal.compare(total_income, 0) == :eq,
+              do: Decimal.new(0),
+              else: Decimal.div(total, total_income) |> Decimal.mult(100)
+
+          "OUTCOME" ->
+            if Decimal.compare(total_outcome, 0) == :eq,
+              do: Decimal.new(0),
+              else: Decimal.div(total, total_outcome) |> Decimal.mult(100)
+
+          _ ->
+            Decimal.new(0)
+        end
+
+      %{
+        type: type,
+        subtype: subtype,
+        total: Decimal.to_string(total),
+        percentage: Decimal.to_string(Decimal.round(percentage, 2))
+      }
+    end)
+  end
+
+  @spec serialize_transactions(list(Transaction.t())) :: list(map())
+  defp serialize_transactions(transactions) do
+    Enum.map(transactions, fn t -> Map.from_struct(t) |> Map.delete(:__meta__) end)
   end
 end
