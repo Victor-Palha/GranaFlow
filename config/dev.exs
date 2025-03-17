@@ -4,7 +4,7 @@ import Config
 config :grana_flow, GranaFlow.Repo,
   username: "granaflow",
   password: "secret",
-  hostname: "10.0.0.84",
+  hostname: "localhost",
   database: "granaflow_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,

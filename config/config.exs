@@ -13,7 +13,7 @@ config :grana_flow,
 
 # Configures the endpoint
 config :grana_flow, GranaFlowWeb.Endpoint,
-  url: [host: "10.0.1.93"],
+  url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
     formats: [json: GranaFlowWeb.ErrorJSON],

@@ -172,43 +172,46 @@ defmodule GranaFlowWeb.TransactionController do
   defp maybe_parse_type("OUTCOME"), do: "OUTCOME"
   defp maybe_parse_type(_), do: nil
 
-  defp generate_monthly_dates(start_dt, end_dt) do
+  def generate_monthly_dates(start_dt, end_dt) do
     start_date = DateTime.to_date(start_dt)
     end_date = DateTime.to_date(end_dt)
-    day = start_date.day
 
-    Stream.unfold({start_date.year, start_date.month}, fn
-      {year, month} ->
-        case Date.new(year, month, day) do
-          {:ok, date} when date <= end_date ->
-            next = next_month(year, month)
-            {
-              DateTime.new!(date, ~T[00:00:00], "Etc/UTC"),
-              next
-            }
-
-          {:error, _} ->
-            {:ok, last_day} = Date.new(year, month, 1)
-            date = Date.end_of_month(last_day)
-
-            if date <= end_date do
-              next = next_month(year, month)
-              {
-                DateTime.new!(date, ~T[00:00:00], "Etc/UTC"),
-                next
-              }
-            else
-              nil
-            end
-
-          _ ->
-            nil
-        end
-    end)
-    |> Enum.to_list()
-    |> Enum.map(fn datetime -> DateTime.to_date(datetime) end)
+    get_all_months_between_dates(start_date, end_date)
   end
 
-  defp next_month(year, 12), do: {year + 1, 1}
-  defp next_month(year, month), do: {year, month + 1}
+  def get_all_months_between_dates(start_date, end_date) do
+    do_get_months(start_date, end_date, start_date.day, [])
+  end
+
+  defp do_get_months(current_date, end_date, start_day, acc) do
+    if Date.compare(current_date, end_date) == :eq do
+      Enum.reverse([current_date | acc])
+    else
+      year = current_date.year
+      month = current_date.month
+
+      date =
+        case Date.new(year, month, start_day) do
+          {:ok, d} -> d
+          {:error, _} ->
+            {:ok, first_of_month} = Date.new(year, month, 1)
+            Date.end_of_month(first_of_month)
+        end
+
+      next_month_date =
+        if month == 12 do
+          {:ok, d} = Date.new(year + 1, 1, start_day)
+          d
+        else
+          case Date.new(year, month + 1, start_day) do
+            {:ok, d} -> d
+            {:error, _} ->
+              {:ok, first_of_month} = Date.new(year, month + 1, 1)
+              Date.end_of_month(first_of_month)
+          end
+        end
+        IO.inspect(next_month_date)
+      do_get_months(next_month_date, end_date, start_day, [date | acc])
+    end
+  end
 end

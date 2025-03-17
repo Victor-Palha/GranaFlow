@@ -2,6 +2,17 @@ defmodule GranaFlow.Transaction.Transaction do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @type t :: %__MODULE__{
+    name: String.t(),
+    type: String.t(),
+    amount: number(),
+    transaction_date: Date.t(),
+    subtype: String.t(),
+    proof_url: String.t(),
+    description: String.t(),
+    wallet_id: number()
+  }
+
   schema "transactions" do
     field :name, :string
     field :type, :string
