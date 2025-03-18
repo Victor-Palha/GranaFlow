@@ -67,9 +67,4 @@ defmodule GranaFlowWeb.AuthController do
         |> json(%{message: "User not found"})
     end
   end
-
-  def test(conn, _params) do
-    %{id: id} = Guardian.Plug.current_resource(conn)
-    json(conn, %{message: id})
-  end
 end

@@ -24,12 +24,12 @@ defmodule GranaFlowWeb.Router do
     pipe_through :auth
     pipe_through :main
 
-    get "/test", AuthController, :test
     post "/wallet", WalletController, :create
     delete "/wallet", WalletController, :delete
     get "/wallet", WalletController, :all
     get "/wallet/:wallet_id/reports/annual", TransactionController, :annual_report
     get "/wallet/:wallet_id/reports/month", TransactionController, :month_report
+
     post "/transaction/single", TransactionController, :create
     post "/transaction/recurrent", TransactionController, :create_recurrent
     get "/transaction/balance", TransactionController, :balance

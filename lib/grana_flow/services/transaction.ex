@@ -1,16 +1,17 @@
 defmodule GranaFlow.Services.Transaction do
   import Ecto.Query
-  alias GranaFlow.{Repo, Transaction.Transaction, Wallets.Wallet}
+  alias GranaFlow.{Repo, Transaction.Transaction, Wallets.Wallet, Utils.FilterQueries}
+  alias GranaFlow.Utils.{FilterQueries, Reports, DatesParser}
 
-  @spec create(map()) :: {:ok, Ecto.Schema.t()} | {:error, Ecto.Changeset.t()}
-  def create(attrs) do
+  @spec create_transaction(map()) :: {:ok, Ecto.Schema.t()} | {:error, Ecto.Changeset.t()}
+  def create_transaction(attrs) do
     %Transaction{}
     |> Transaction.changeset(attrs)
     |> Repo.insert()
   end
 
-  @spec create_many([map()]) :: {:ok, list(map())}
-  def create_many(attrs_list) when is_list(attrs_list) do
+  @spec create_many_transactions([map()]) :: {:ok, list(map())}
+  def create_many_transactions(attrs_list) when is_list(attrs_list) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     prepared_attrs =
@@ -35,73 +36,27 @@ defmodule GranaFlow.Services.Transaction do
     end
   end
 
-  @spec all(String.t(), String.t(), number() | nil, boolean(), boolean(), String.t()) ::
-          {:error, :not_found} | {:ok, list(Ecto.Schema.t())}
-  def all(user_id, wallet_id, limit, true, false, type_transaction) do
-    with {:ok, wallet} <- get_wallet(user_id, wallet_id) do
-      today = Date.utc_today()
+  @spec all(String.t(), String.t(), number() | nil, boolean(), boolean(), String.t() | nil) ::
+          {:error, :not_found | :invalid_filter_combination} | {:ok, list(Ecto.Schema.t())}
+  def all(user_id, wallet_id, limit, past?, future?, type_transaction) do
+    cond do
+      past? and future? ->
+        {:error, :invalid_filter_combination}
 
-      base_query =
-        from(t in Transaction,
-          where: t.wallet_id == ^wallet.id and t.transaction_date <= ^today,
-          order_by: [desc: t.transaction_date],
-          limit: ^limit_if_needed(limit)
-        )
+      true ->
+        with {:ok, wallet} <- get_wallet(user_id, wallet_id) do
+          query =
+            Transaction
+            |> FilterQueries.filter_by_wallet(wallet.id)
+            |> FilterQueries.filter_by_date(past?, future?)
+            |> FilterQueries.filter_by_type(type_transaction)
+            |> order_by(desc: :transaction_date)
+            |> limit(^FilterQueries.limit_quey_if_needed(limit))
 
-      query =
-        if is_nil(type_transaction) do
-          base_query
-        else
-          from(t in base_query, where: t.type == ^type_transaction)
+          {:ok, Repo.all(query)}
         end
-
-      {:ok, Repo.all(query)}
     end
   end
-
-  def all(user_id, wallet_id, limit, false, true, type_transaction) do
-    with {:ok, wallet} <- get_wallet(user_id, wallet_id) do
-      today = Date.utc_today()
-
-      base_query =
-        from(t in Transaction,
-          where: t.wallet_id == ^wallet.id and t.transaction_date > ^today,
-          order_by: [desc: t.transaction_date],
-          limit: ^limit_if_needed(limit)
-        )
-
-      query =
-        if is_nil(type_transaction) do
-          base_query
-        else
-          from(t in base_query, where: t.type == ^type_transaction)
-        end
-
-      {:ok, Repo.all(query)}
-    end
-  end
-
-  def all(user_id, wallet_id, limit, false, false, type_transaction) do
-    with {:ok, wallet} <- get_wallet(user_id, wallet_id) do
-      base_query =
-        from(t in Transaction,
-          where: t.wallet_id == ^wallet.id,
-          order_by: [desc: t.transaction_date],
-          limit: ^limit_if_needed(limit)
-        )
-
-      query =
-        if is_nil(type_transaction) do
-          base_query
-        else
-          from(t in base_query, where: t.type == ^type_transaction)
-        end
-
-      {:ok, Repo.all(query)}
-    end
-  end
-
-  def all(_, _, _, true, true, _), do: {:error, :invalid_filter_combination}
 
   defp get_wallet(user_id, wallet_id) do
     query = from(w in Wallet, where: w.user_id == ^user_id and w.id == ^wallet_id)
@@ -111,9 +66,6 @@ defmodule GranaFlow.Services.Transaction do
       wallet -> {:ok, wallet}
     end
   end
-
-  defp limit_if_needed(nil), do: nil
-  defp limit_if_needed(limit), do: limit
 
   @spec current_balance(String.t(), String.t()) :: {:ok, number()}
   def current_balance(user_id, wallet_id) do
@@ -153,172 +105,30 @@ defmodule GranaFlow.Services.Transaction do
       start_date = Date.new!(year, 1, 1)
       end_date = Date.new!(year, 12, 31)
 
-      transactions = fetch_annual_transactions(wallet.id, start_date, end_date)
-      grouped = group_transactions_by_month(transactions)
-      full_report = build_full_annual_report(grouped)
+      full_report =
+        Reports.fetch_transactions_for_period(wallet.id, start_date, end_date)
+      |> Reports.group_by_month()
+      |> Reports.build_annual_report()
 
       {:ok, full_report}
     end
   end
 
-  @spec fetch_annual_transactions(binary(), Date.t(), Date.t()) ::
-          list({String.t(), Date.t(), Decimal.t()})
-  defp fetch_annual_transactions(wallet_id, start_date, end_date) do
-    from(
-      t in Transaction,
-      where:
-        t.wallet_id == ^wallet_id and t.transaction_date >= ^start_date and
-          t.transaction_date <= ^end_date,
-      select: {t.type, t.transaction_date, t.amount}
-    )
-    |> Repo.all()
-  end
-
-  @spec group_transactions_by_month(list({String.t(), Date.t(), Decimal.t()})) ::
-          %{optional(non_neg_integer()) => %{income: Decimal.t(), outcome: Decimal.t()}}
-  defp group_transactions_by_month(transactions) do
-    Enum.reduce(transactions, %{}, fn {type, date, amount}, acc ->
-      month = date.month
-      current = Map.get(acc, month, %{income: Decimal.new(0), outcome: Decimal.new(0)})
-
-      updated =
-        case type do
-          "INCOME" -> %{current | income: Decimal.add(current.income, amount)}
-          "OUTCOME" -> %{current | outcome: Decimal.add(current.outcome, amount)}
-          _ -> current
-        end
-
-      Map.put(acc, month, updated)
-    end)
-  end
-
-  @spec build_full_annual_report(%{
-          optional(non_neg_integer()) => %{income: Decimal.t(), outcome: Decimal.t()}
-        }) :: list(map())
-  defp build_full_annual_report(grouped_data) do
-    1..12
-    |> Enum.reduce({[], Decimal.new(0)}, fn month, {acc, previous_balance} ->
-      month_data =
-        Map.get(grouped_data, month, %{income: Decimal.new(0), outcome: Decimal.new(0)})
-
-      month_balance = Decimal.sub(month_data.income, month_data.outcome)
-      cumulative_balance = Decimal.add(previous_balance, month_balance)
-
-      updated_month = %{
-        month: month,
-        income: Decimal.to_string(month_data.income),
-        outcome: Decimal.to_string(month_data.outcome),
-        final_balance: Decimal.to_string(cumulative_balance)
-      }
-
-      {[updated_month | acc], cumulative_balance}
-    end)
-    |> elem(0)
-    |> Enum.reverse()
-  end
-
   @spec get_month_report(String.t(), String.t(), integer(), integer()) :: {:ok, map()}
   def get_month_report(user_id, wallet_id, year, month) do
     with {:ok, wallet} <- get_wallet(user_id, wallet_id),
-         {:ok, start_date, end_date} <- build_date_range(year, month),
-         {transactions_report, all_transactions} <-
-           fetch_wallet_transactions(wallet.id, start_date, end_date),
-         {total_income, total_outcome} <- calculate_totals(transactions_report),
-         subtypes_report <-
-           build_subtypes_report(transactions_report, total_income, total_outcome) do
+         {:ok, start_date, end_date} <- DatesParser.build_date_range(year, month),
+         {transactions_report, all_transactions} <- Reports.fetch_transactions_with_subtypes(wallet.id, start_date, end_date),
+         {total_income, total_outcome} <- Reports.calculate_income_and_outcome(transactions_report),
+         subtypes_report <- Reports.build_subtype_report(transactions_report, total_income, total_outcome) do
       {:ok,
        %{
          total_income: Decimal.to_string(total_income),
          total_outcome: Decimal.to_string(total_outcome),
          final_balance: Decimal.to_string(Decimal.sub(total_income, total_outcome)),
          subtypes: subtypes_report,
-         transactions: serialize_transactions(all_transactions)
+         transactions: Enum.map(all_transactions, fn t -> Map.from_struct(t) |> Map.delete(:__meta__) end)
        }}
     end
-  end
-
-  @spec build_date_range(integer(), integer()) :: {:ok, Date.t(), Date.t()}
-  defp build_date_range(year, month) do
-    with {:ok, start_date} <- Date.new(year, month, 1) do
-      end_date = Date.end_of_month(start_date)
-      {:ok, start_date, end_date}
-    end
-  end
-
-  @spec fetch_wallet_transactions(binary(), Date.t(), Date.t()) ::
-          {list({String.t(), String.t(), Decimal.t()}), list(Transaction.t())}
-  defp fetch_wallet_transactions(wallet_id, start_date, end_date) do
-    query =
-      from(t in Transaction,
-        where:
-          t.wallet_id == ^wallet_id and
-            t.transaction_date >= ^start_date and
-            t.transaction_date <= ^end_date
-      )
-
-    all_transactions = Repo.all(query)
-
-    report_data =
-      Enum.map(all_transactions, fn %Transaction{type: type, subtype: subtype, amount: amount} ->
-        {type, subtype, amount}
-      end)
-
-    {report_data, all_transactions}
-  end
-
-  @spec calculate_totals(list({String.t(), String.t(), Decimal.t()})) ::
-          {Decimal.t(), Decimal.t()}
-  defp calculate_totals(transactions) do
-    {incomes, outcomes} = Enum.split_with(transactions, fn {type, _, _} -> type == "INCOME" end)
-
-    total_income =
-      Enum.reduce(incomes, Decimal.new(0), fn {_, _, amount}, acc -> Decimal.add(acc, amount) end)
-
-    total_outcome =
-      Enum.reduce(outcomes, Decimal.new(0), fn {_, _, amount}, acc -> Decimal.add(acc, amount) end)
-
-    {total_income, total_outcome}
-  end
-
-  @spec build_subtypes_report(
-          list({String.t(), String.t(), Decimal.t()}),
-          Decimal.t(),
-          Decimal.t()
-        ) :: list(map())
-  defp build_subtypes_report(transactions, total_income, total_outcome) do
-    transactions
-    |> Enum.group_by(fn {type, subtype, _} -> {type, subtype} end)
-    |> Enum.map(fn {{type, subtype}, list} ->
-      total =
-        Enum.reduce(list, Decimal.new(0), fn {_, _, amount}, acc -> Decimal.add(acc, amount) end)
-
-      percentage =
-        case type do
-          "INCOME" ->
-            if Decimal.compare(total_income, 0) == :eq,
-              do: Decimal.new(0),
-              else: Decimal.div(total, total_income) |> Decimal.mult(100)
-
-          "OUTCOME" ->
-            if Decimal.compare(total_outcome, 0) == :eq,
-              do: Decimal.new(0),
-              else: Decimal.div(total, total_outcome) |> Decimal.mult(100)
-
-          _ ->
-            Decimal.new(0)
-        end
-
-      %{
-        type: type,
-        subtype: subtype,
-        total: Decimal.to_string(total),
-        percentage: Decimal.to_string(Decimal.round(percentage, 2))
-      }
-    end)
-  end
-
-  @spec serialize_transactions(list(Transaction.t())) :: list(map())
-  defp serialize_transactions(transactions) do
-    Enum.map(transactions, fn t -> Map.from_struct(t) |> Map.delete(:__meta__) end)
   end
 end

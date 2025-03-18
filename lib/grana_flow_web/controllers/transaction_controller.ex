@@ -2,6 +2,7 @@ defmodule GranaFlowWeb.TransactionController do
   use GranaFlowWeb, :controller
   alias GranaFlow.Services.Transaction, as: TransactionService
   alias GranaFlow.Services.Wallet, as: WalletService
+  alias GranaFlow.Utils.{ParsesParams, DatesParser}
 
   def create(conn, %{
     "name" => name,
@@ -22,7 +23,7 @@ defmodule GranaFlowWeb.TransactionController do
         |> json(%{message: "Wallet not found..."})
       {:ok, _wallet} ->
         {:ok, dt, _} = DateTime.from_iso8601(transaction_date)
-        {:ok, transaction} = TransactionService.create(%{
+        {:ok, transaction} = TransactionService.create_transaction(%{
           name: name,
           type: String.upcase(type),
           amount: amount,
@@ -62,7 +63,7 @@ defmodule GranaFlowWeb.TransactionController do
 
       {:ok, _wallet} ->
         with {:ok, start_dt, _} <- DateTime.from_iso8601(start_date), {:ok, end_dt, _} <- DateTime.from_iso8601(end_date) do
-          days = generate_monthly_dates(start_dt, end_dt)
+          days = DatesParser.generate_monthly_dates(start_dt, end_dt)
           transactions = Enum.map(days, fn date ->
               %{
                 name: name,
@@ -76,7 +77,7 @@ defmodule GranaFlowWeb.TransactionController do
               }
           end)
 
-          {:ok, _inserted} = TransactionService.create_many(transactions)
+          {:ok, _inserted} = TransactionService.create_many_transactions(transactions)
 
           conn
           |> put_status(:created)
@@ -106,10 +107,10 @@ defmodule GranaFlowWeb.TransactionController do
 
   def all(conn, %{"wallet_id" => wallet_id} = params) do
     %{id: user_id} = Guardian.Plug.current_resource(conn)
-    limit = Map.get(params, "limit") |> maybe_parse_int()
-    is_until_today = Map.get(params, "is_until_today") |> maybe_parse_boolean()
-    is_after_today = Map.get(params, "is_after_today") |> maybe_parse_boolean()
-    type_transaction = Map.get(params, "type_transaction") |> maybe_parse_type()
+    limit = Map.get(params, "limit") |> ParsesParams.maybe_parse_int()
+    is_until_today = Map.get(params, "is_until_today") |> ParsesParams.maybe_parse_boolean()
+    is_after_today = Map.get(params, "is_after_today") |> ParsesParams.maybe_parse_boolean()
+    type_transaction = Map.get(params, "type_transaction") |> ParsesParams.maybe_parse_type()
     case TransactionService.all(user_id, wallet_id, limit, is_until_today, is_after_today, type_transaction) do
       {:error, :not_found} ->
         conn
@@ -152,66 +153,4 @@ defmodule GranaFlowWeb.TransactionController do
     end
   end
 
-  defp maybe_parse_int(nil), do: nil
-  defp maybe_parse_int(""), do: nil
-  defp maybe_parse_int(str) when is_binary(str) do
-    case Integer.parse(str) do
-      {int, _} -> int
-      :error -> nil
-    end
-  end
-
-  defp maybe_parse_boolean(value) when (is_nil(value)), do: false
-  defp maybe_parse_boolean(""), do: false
-  defp maybe_parse_boolean("false"), do: false
-  defp maybe_parse_boolean("true"), do: true
-  defp maybe_parse_boolean(_), do: true
-
-  defp maybe_parse_type(value) when (is_nil(value)), do: nil
-  defp maybe_parse_type("INCOME"), do: "INCOME"
-  defp maybe_parse_type("OUTCOME"), do: "OUTCOME"
-  defp maybe_parse_type(_), do: nil
-
-  def generate_monthly_dates(start_dt, end_dt) do
-    start_date = DateTime.to_date(start_dt)
-    end_date = DateTime.to_date(end_dt)
-
-    get_all_months_between_dates(start_date, end_date)
-  end
-
-  def get_all_months_between_dates(start_date, end_date) do
-    do_get_months(start_date, end_date, start_date.day, [])
-  end
-
-  defp do_get_months(current_date, end_date, start_day, acc) do
-    if Date.compare(current_date, end_date) == :eq do
-      Enum.reverse([current_date | acc])
-    else
-      year = current_date.year
-      month = current_date.month
-
-      date =
-        case Date.new(year, month, start_day) do
-          {:ok, d} -> d
-          {:error, _} ->
-            {:ok, first_of_month} = Date.new(year, month, 1)
-            Date.end_of_month(first_of_month)
-        end
-
-      next_month_date =
-        if month == 12 do
-          {:ok, d} = Date.new(year + 1, 1, start_day)
-          d
-        else
-          case Date.new(year, month + 1, start_day) do
-            {:ok, d} -> d
-            {:error, _} ->
-              {:ok, first_of_month} = Date.new(year, month + 1, 1)
-              Date.end_of_month(first_of_month)
-          end
-        end
-        IO.inspect(next_month_date)
-      do_get_months(next_month_date, end_date, start_day, [date | acc])
-    end
-  end
 end
