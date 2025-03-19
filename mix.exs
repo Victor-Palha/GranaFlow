@@ -50,6 +50,7 @@ defmodule GranaFlow.MixProject do
       {:ueberauth_facebook, "~> 0.8"},
       {:guardian, "~> 2.0"},
       {:bcrypt_elixir, "~> 2.0"},
+      {:cors_plug, "~> 3.0"},
     ]
   end
 

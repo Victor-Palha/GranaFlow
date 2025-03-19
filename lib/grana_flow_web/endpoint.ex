@@ -1,6 +1,11 @@
 defmodule GranaFlowWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :grana_flow
 
+    plug CORSPlug,
+      origin: ["http://localhost:5173"],
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+      headers: ["Authorization", "Content-Type"]
+
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
   # Set :encryption_salt if you would also like to encrypt it.
