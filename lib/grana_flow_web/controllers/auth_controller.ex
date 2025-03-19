@@ -5,16 +5,29 @@ defmodule GranaFlowWeb.AuthController do
   alias GranaFlow.Guardian
   alias GranaFlow.{Services.User}
 
+  def request(conn, %{"provider" => _provider, "client" => client}) do
+    conn
+    |> put_session(:client_device, client)
+    |> Ueberauth.Strategy.Helpers.redirect!(client)
+  end
+
   def callback(%{assigns: %{ueberauth_auth: auth}} = conn, _params) do
     case find_or_create_user(auth) do
       {:ok, user} ->
         {:ok, main_token, _claims_main} = GranaFlow.Guardian.generate_token(user, "main")
         {:ok, refresh_token, _claims_refresh} = GranaFlow.Guardian.generate_token(user, "refresh")
 
+        client_device = get_session(conn, :client_device) || "web"
+        url_to_redirect = case client_device do
+          "mobile" -> "exp://10.0.1.40:8081"
+          _ -> "http://localhost:5173"
+        end
+        IO.inspect(url_to_redirect)
+
         conn
         |> redirect(
           external:
-            "exp://10.0.1.40:8081/auth/callback?token=#{main_token}" <>
+            "#{url_to_redirect}/auth/callback?token=#{main_token}" <>
             "&refresh_token=#{refresh_token}" <>
             "&id=#{user.id}" <>
             "&email=#{URI.encode_www_form(user.email)}" <>
