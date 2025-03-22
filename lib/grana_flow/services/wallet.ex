@@ -9,8 +9,18 @@ defmodule GranaFlow.Services.Wallet do
     |> Repo.insert()
   end
 
+  @spec user_can_create_wallet?(String.t()) :: true | false
+  def user_can_create_wallet?(user_id) do
+    if GranaFlow.Services.User.is_user_premium(user_id) do
+      true
+    else
+      count = count_wallets(user_id)
+      count < 1
+    end
+  end
+
   @spec count_wallets(String.t()) :: number() | nil
-  def count_wallets(user_id) do
+  defp count_wallets(user_id) do
     user_id = String.to_integer(user_id)
     query = from(w in Wallet, where: w.user_id == ^user_id)
     Repo.aggregate(query, :count, :id)

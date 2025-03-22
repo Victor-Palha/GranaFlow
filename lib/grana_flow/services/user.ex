@@ -21,7 +21,6 @@ defmodule GranaFlow.Services.User do
     end
   end
 
-
   @spec upgrade_profile(String.t()) :: {:error, :not_found} | {:ok, Ecto.Schema.t()}
   def upgrade_profile(user_id) do
     with {:ok, user} <- get_by_id(user_id) do
@@ -31,6 +30,15 @@ defmodule GranaFlow.Services.User do
       |> Repo.update()
     else
       _ -> {:error, :not_found}
+    end
+  end
+
+  @spec is_user_premium(String.t()) :: true | false
+  def is_user_premium(user_id) do
+    with {:ok, user} <- get_by_id(user_id) do
+      user.premium == true
+    else
+      _ -> false
     end
   end
 end
