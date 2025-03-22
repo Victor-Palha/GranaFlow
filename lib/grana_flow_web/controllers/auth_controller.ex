@@ -1,23 +1,27 @@
 defmodule GranaFlowWeb.AuthController do
   use GranaFlowWeb, :controller
-  plug Ueberauth
+  plug(Ueberauth, providers: [:google_custom])
+
+  @provider_config {Ueberauth.Strategy.Google, [default_scope: "email profile"]}
 
   alias GranaFlow.Guardian
   alias GranaFlow.{Services.User}
 
-  def request(conn, %{"provider" => _provider, "client" => client}) do
+  def request(conn, %{"provider" => "google", "client" => client}) do
     conn
-    |> put_session(:client_device, client)
-    |> Ueberauth.Strategy.Helpers.redirect!(client)
+    |> put_session(:client, client)
+    |> Ueberauth.run_request("google", @provider_config)
   end
 
-  def callback(%{assigns: %{ueberauth_auth: auth}} = conn, _params) do
+  def callback(conn, _params) do
+    %{assigns: %{ueberauth_auth: auth}} = conn |> Ueberauth.run_callback("google", @provider_config)
+
     case find_or_create_user(auth) do
       {:ok, user} ->
         {:ok, main_token, _claims_main} = GranaFlow.Guardian.generate_token(user, "main")
         {:ok, refresh_token, _claims_refresh} = GranaFlow.Guardian.generate_token(user, "refresh")
 
-        client_device = get_session(conn, :client_device) || "web"
+        client_device = get_session(conn, :client) || "web"
         url_to_redirect = case client_device do
           "mobile" -> "exp://10.0.1.40:8081"
           _ -> "http://localhost:5173"
