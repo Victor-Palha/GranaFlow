@@ -8,6 +8,7 @@ defmodule GranaFlow.Accounts.User do
     field :email, :string
     field :avatar_url, :string
     field :provider_uid, :string
+    field :premium, :boolean
 
     timestamps(type: :utc_datetime)
   end
@@ -15,7 +16,7 @@ defmodule GranaFlow.Accounts.User do
   @doc false
   def changeset(user, attrs) do
     user
-    |> cast(attrs, [:email, :name, :avatar_url, :provider, :provider_uid])
+    |> cast(attrs, [:email, :name, :avatar_url, :provider, :provider_uid, :premium])
     |> validate_required([:email, :name, :avatar_url, :provider, :provider_uid])
     |> unique_constraint([:provider, :provider_uid])
   end
