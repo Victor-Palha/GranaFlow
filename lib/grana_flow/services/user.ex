@@ -20,4 +20,17 @@ defmodule GranaFlow.Services.User do
       user -> {:ok, user}
     end
   end
+
+
+  @spec upgrade_profile(String.t()) :: {:error, :not_found} | {:ok, Ecto.Schema.t()}
+  def upgrade_profile(user_id) do
+    with {:ok, user} <- get_by_id(user_id) do
+      user
+      |> User.changeset(%{})
+      |> Ecto.Changeset.put_change(:premium, true)
+      |> Repo.update()
+    else
+      _ -> {:error, :not_found}
+    end
+  end
 end
