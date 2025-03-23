@@ -36,6 +36,8 @@ defmodule GranaFlowWeb.Router do
     get "/transaction/balance", TransactionController, :balance
     get "/transaction/:transaction_id", TransactionController, :get
     get "/transaction", TransactionController, :all
+
+    post "/upgrade", PaymentController, :create
   end
 
 
@@ -52,6 +54,10 @@ defmodule GranaFlowWeb.Router do
     pipe_through :refresh
 
     get "/", AuthController, :validate_token
+  end
+
+  scope "/payment", GranaFlowWeb do
+    post "/notification", PaymentController, :notification
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

@@ -26,7 +26,6 @@ defmodule GranaFlowWeb.AuthController do
           "mobile" -> "exp://10.0.1.40:8081"
           _ -> "http://localhost:5173"
         end
-        IO.inspect(url_to_redirect)
 
         conn
         |> redirect(
@@ -36,7 +35,8 @@ defmodule GranaFlowWeb.AuthController do
             "&id=#{user.id}" <>
             "&email=#{URI.encode_www_form(user.email)}" <>
             "&name=#{URI.encode_www_form(user.name)}" <>
-            "&avatar_url=#{URI.encode_www_form(user.avatar_url)}"
+            "&avatar_url=#{URI.encode_www_form(user.avatar_url)}" <>
+            "&premium=#{user.premium}"
         )
         # conn
         # |> put_status(:ok)
@@ -71,7 +71,7 @@ defmodule GranaFlowWeb.AuthController do
 
       conn
       |> put_status(:ok)
-      |> json(%{token: token, refresh_token: refresh_token, user_id: user.id})
+      |> json(%{token: token, refresh_token: refresh_token, user_id: user.id, is_premium: user.premium})
     else
       nil ->
         conn
