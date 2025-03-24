@@ -6,8 +6,8 @@ defmodule GranaFlowWeb.GuardianErrorHandler do
   @impl Guardian.Plug.ErrorHandler
   def auth_error(conn, {type, reason}, _opts) do
     message = case reason do
-      :no_resource_found -> "Please, provide the auth token to access this resource"
-      :invalid_token -> "Invalid token, please log-in again"
+      :no_resource_found -> "Parece que você não tem o token de authenticação, faça login para receber um token!"
+      :invalid_token -> "Ops, parece que você não está authenticado corretamente! Refaça login para acessar esse recurso."
       _ -> type
     end
 

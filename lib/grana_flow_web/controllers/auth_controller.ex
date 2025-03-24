@@ -76,12 +76,12 @@ defmodule GranaFlowWeb.AuthController do
       nil ->
         conn
         |> put_status(:unauthorized)
-        |> json(%{message: "Invalid token"})
+        |> json(%{message: "Token de acesso inválido!"})
 
       {:error, :not_found} ->
         conn
         |> put_status(:not_found)
-        |> json(%{message: "User not found"})
+        |> json(%{message: "Usuário não encontrado!"})
     end
   end
 end

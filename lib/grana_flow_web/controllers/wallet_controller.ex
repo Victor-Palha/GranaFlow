@@ -16,7 +16,7 @@ defmodule GranaFlowWeb.WalletController do
     else
       conn
       |> put_status(:forbidden)
-      |> json(%{message: "You already has a wallet! Please upgrade your account to create more."})
+      |> json(%{message: "Você já possuí uma carteira, faça o upgrade para conta premium para ter carteiras ilimitadas!"})
     end
   end
 
@@ -28,15 +28,15 @@ defmodule GranaFlowWeb.WalletController do
       {:ok, wallet} ->
         conn
         |> put_status(:ok)
-        |> json(%{message: "Wallet #{wallet.name} was deleted"})
+        |> json(%{message: "Carteira #{wallet.name} foi deletada!"})
       {:error, :not_found} ->
         conn
         |> put_status(:not_found)
-        |> json(%{message: "Wallet not found on your account"})
+        |> json(%{message: "Essa carteira não foi encontrada na sua conta!"})
       {:error, changeset} ->
         conn
         |> put_status(:internal_server_error)
-        |> json(%{message: "Fail to delete waller", errors: changeset.errors})
+        |> json(%{message: "Falha ao deletar a carteira :(", errors: changeset.errors})
     end
   end
 
@@ -48,7 +48,7 @@ defmodule GranaFlowWeb.WalletController do
       {:error, :not_found} ->
         conn
         |> put_status(:not_found)
-        |> json(%{message: "You don't have any wallets yet, please create a new one."})
+        |> json(%{message: "Parece que você não possuí carteiras no momento, crie uma nova!"})
 
       {:ok, wallets} ->
         wallets_mapped = Enum.map(wallets, fn w -> Map.from_struct(w) |> Map.delete(:__meta__) end)

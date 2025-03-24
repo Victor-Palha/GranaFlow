@@ -20,7 +20,7 @@ defmodule GranaFlowWeb.TransactionController do
       {:error, :not_found} ->
         conn
         |> put_status(:not_found)
-        |> json(%{message: "Wallet not found..."})
+        |> json(%{message: "Carteira não encontrada..."})
       {:ok, _wallet} ->
         {:ok, dt, _} = DateTime.from_iso8601(transaction_date)
         {:ok, transaction} = TransactionService.create_transaction(%{
@@ -38,7 +38,7 @@ defmodule GranaFlowWeb.TransactionController do
 
         conn
         |> put_status(:created)
-        |> json(%{message: "Transaction created with sucess", transaction: transaction_mapped})
+        |> json(%{message: "Transação criada com sucesso!", transaction: transaction_mapped})
     end
   end
 
@@ -59,7 +59,7 @@ defmodule GranaFlowWeb.TransactionController do
       {:error, :not_found} ->
         conn
         |> put_status(:not_found)
-        |> json(%{message: "Wallet not found"})
+        |> json(%{message: "Carteira não encontrada..."})
 
       {:ok, _wallet} ->
         with {:ok, start_dt, _} <- DateTime.from_iso8601(start_date), {:ok, end_dt, _} <- DateTime.from_iso8601(end_date) do
@@ -82,10 +82,10 @@ defmodule GranaFlowWeb.TransactionController do
           conn
           |> put_status(:created)
           |> json(%{
-            message: "Recurring transactions created"
+            message: "Transações recorrentes criadas com sucesso!"
           })
         else
-          _ -> conn |> put_status(:bad_request) |> json(%{message: "Invalid date format"})
+          _ -> conn |> put_status(:bad_request) |> json(%{message: "Formato de datas inválidos!"})
         end
     end
   end
@@ -95,7 +95,7 @@ defmodule GranaFlowWeb.TransactionController do
       {:error, :not_found} ->
         conn
         |> put_status(:not_found)
-        |> json(%{message: "Transaction not found!"})
+        |> json(%{message: "Transação não encontrada :("})
       {:ok, transaction} ->
         transaction_mapped = Map.from_struct(transaction) |> Map.delete(:__meta__)
 
@@ -115,7 +115,7 @@ defmodule GranaFlowWeb.TransactionController do
       {:error, :not_found} ->
         conn
         |> put_status(:not_found)
-        |> json(%{message: "Transactions not found!"})
+        |> json(%{message: "Transação não encontrada :("})
       {:ok, transactions} ->
         transactions_mapped = Enum.map(transactions, fn t -> Map.from_struct(t) |> Map.delete(:__meta__) end)
         conn

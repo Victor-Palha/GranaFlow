@@ -11,7 +11,7 @@ defmodule GranaFlowWeb.Plugs.EnsureTokenType do
         conn
 
       _ ->
-        body = Jason.encode!(%{message: "Invalid token type"})
+        body = Jason.encode!(%{message: "Tipo de token inválido para esse recurso!"})
         conn
         |> put_resp_content_type("application/json")
         |> send_resp(:unauthorized, body)
