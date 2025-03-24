@@ -6,7 +6,7 @@ defmodule GranaFlowWeb.WalletController do
   def create(conn, %{"name" => wallet_name, "type" => wallet_type}) do
     %{id: user_id} = Guardian.Plug.current_resource(conn)
 
-    if WalletService.user_can_create_wallet?(user_id) do
+    if WalletService.user_can_create_wallet?(user_id, wallet_type) do
       {:ok, wallet_created} = WalletService.create(%{name: wallet_name, type: wallet_type, user_id: user_id})
       wallet_mapped = Map.from_struct(wallet_created) |> Map.delete(:__meta__)
 
