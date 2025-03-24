@@ -20,6 +20,10 @@ defmodule GranaFlowWeb.Router do
     plug GranaFlowWeb.Plugs.EnsureTokenType, "main"
   end
 
+  pipeline :premium do
+    plug GranaFlowWeb.Plugs.EnsureUserPremium, true
+  end
+
   scope "/api", GranaFlowWeb do
     pipe_through :api
     pipe_through :auth

@@ -12,7 +12,8 @@ defmodule GranaFlow.Guardian do
   def generate_token(user, "main") do
     claims = %{
       "typ" => "main",
-      "exp" => Guardian.timestamp() + 600 # 10 minutes
+      "exp" => Guardian.timestamp() + 600, # 10 minutes
+      "premium" => user.premium
     }
 
     encode_and_sign(user, claims, token_type: "main")
