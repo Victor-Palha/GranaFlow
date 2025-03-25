@@ -3,7 +3,7 @@ defmodule GranaFlowWeb.CustomSubtypeController do
 
   alias GranaFlow.Services
 
-  def create(conn, %{"custom_subtype" => custom_subtype_params}) do
+  def create(conn, %{"name" => custom_subtype_params}) do
     %{id: user_id} = Guardian.Plug.current_resource(conn)
 
     custom_subtype_params =
