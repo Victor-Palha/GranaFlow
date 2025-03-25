@@ -52,6 +52,10 @@ defmodule GranaFlow.MixProject do
       {:bcrypt_elixir, "~> 2.0"},
       {:cors_plug, "~> 3.0"},
       {:httpoison, "~> 2.0"},
+      {:ex_aws, "~> 2.5"},
+      {:ex_aws_s3, "~> 2.4"},
+      {:hackney, "~> 1.18"},
+      {:sweet_xml, "~> 0.7"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end

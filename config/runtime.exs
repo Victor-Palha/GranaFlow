@@ -40,6 +40,19 @@ if config_env() == :prod do
     client_id: System.get_env("GOOGLE_CLIENT_ID"),
     client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
 
+  config :ex_aws,
+    json_codec: Jason,
+    http_client: ExAws.Request.Hackney,
+    s3: [
+      scheme: "https://",
+      host: System.get_env("R2_ENDPOINT_URL"),
+      region: "auto"
+    ]
+
+  config :ex_aws, :s3,
+    access_key_id: System.get_env("R2_ACCESS_KEY"),
+    secret_access_key: System.get_env("R2_SECRET_KEY")
+
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
   # want to use a different value for prod and you most likely don't want

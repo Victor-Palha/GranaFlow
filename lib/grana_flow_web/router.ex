@@ -61,6 +61,7 @@ defmodule GranaFlowWeb.Router do
 
     post "/custom-subtypes", CustomSubtypeController, :create
     get "/custom-subtypes", CustomSubtypeController, :all
+    post "/proof", ProofController, :create
   end
 
   scope "/auth", GranaFlowWeb do
