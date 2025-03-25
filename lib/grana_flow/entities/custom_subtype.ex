@@ -1,10 +1,10 @@
-defmodule GranaFlow.Transactions.CustomSubtype do
+defmodule GranaFlow.Entities.CustomSubtype do
   use Ecto.Schema
   import Ecto.Changeset
 
   schema "custom_subtypes" do
     field :name, :string
-    belongs_to :user, GranaFlow.Accounts.User
+    belongs_to :user, GranaFlow.Entities.User
 
     timestamps(type: :utc_datetime)
   end

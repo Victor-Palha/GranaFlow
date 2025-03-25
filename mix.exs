@@ -51,7 +51,8 @@ defmodule GranaFlow.MixProject do
       {:guardian, "~> 2.0"},
       {:bcrypt_elixir, "~> 2.0"},
       {:cors_plug, "~> 3.0"},
-      {:httpoison, "~> 2.0"}
+      {:httpoison, "~> 2.0"},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 

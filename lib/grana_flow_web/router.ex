@@ -7,9 +7,18 @@ defmodule GranaFlowWeb.Router do
   end
 
   pipeline :auth do
-    plug Guardian.Plug.VerifyHeader, module: GranaFlow.Guardian, scheme: "Bearer", error_handler: GranaFlowWeb.GuardianErrorHandler
-    plug Guardian.Plug.LoadResource, module: GranaFlow.Guardian, error_handler: GranaFlowWeb.GuardianErrorHandler
-    plug Guardian.Plug.EnsureAuthenticated, module: GranaFlow.Guardian, error_handler: GranaFlowWeb.GuardianErrorHandler
+    plug Guardian.Plug.VerifyHeader,
+      module: GranaFlow.Guardian,
+      scheme: "Bearer",
+      error_handler: GranaFlowWeb.GuardianErrorHandler
+
+    plug Guardian.Plug.LoadResource,
+      module: GranaFlow.Guardian,
+      error_handler: GranaFlowWeb.GuardianErrorHandler
+
+    plug Guardian.Plug.EnsureAuthenticated,
+      module: GranaFlow.Guardian,
+      error_handler: GranaFlowWeb.GuardianErrorHandler
   end
 
   pipeline :refresh do
@@ -53,7 +62,6 @@ defmodule GranaFlowWeb.Router do
     post "/custom-subtypes", CustomSubtypeController, :create
     get "/custom-subtypes", CustomSubtypeController, :all
   end
-
 
   scope "/auth", GranaFlowWeb do
     pipe_through :api

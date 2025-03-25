@@ -1,12 +1,12 @@
 defmodule GranaFlow.Services.Transaction do
   import Ecto.Query
-  alias GranaFlow.{Repo, Transaction.Transaction, Wallets.Wallet, Utils.FilterQueries}
-  alias GranaFlow.Utils.{FilterQueries, Reports, DatesParser}
+  alias GranaFlow.{Entities, Repo, Utils.FilterQueries}
+  alias GranaFlow.Utils.{DatesParser, FilterQueries, Reports}
 
   @spec create_transaction(map()) :: {:ok, Ecto.Schema.t()} | {:error, Ecto.Changeset.t()}
   def create_transaction(attrs) do
-    %Transaction{}
-    |> Transaction.changeset(attrs)
+    %Entities.Transaction{}
+    |> Entities.Transaction.changeset(attrs)
     |> Repo.insert()
   end
 
@@ -22,7 +22,7 @@ defmodule GranaFlow.Services.Transaction do
         })
       end)
 
-    {_count, inserted} = Repo.insert_all(Transaction, prepared_attrs, returning: true)
+    {_count, inserted} = Repo.insert_all(Entities.Transaction, prepared_attrs, returning: true)
     {:ok, inserted}
   end
 
@@ -30,7 +30,7 @@ defmodule GranaFlow.Services.Transaction do
   def get_by_id(transaction_id) do
     transaction_id = String.to_integer(transaction_id)
 
-    case Repo.get_by(Transaction, id: transaction_id) do
+    case Repo.get_by(Entities.Transaction, id: transaction_id) do
       nil -> {:error, :not_found}
       transaction -> {:ok, transaction}
     end
@@ -39,27 +39,25 @@ defmodule GranaFlow.Services.Transaction do
   @spec all(String.t(), String.t(), number() | nil, boolean(), boolean(), String.t() | nil) ::
           {:error, :not_found | :invalid_filter_combination} | {:ok, list(Ecto.Schema.t())}
   def all(user_id, wallet_id, limit, past?, future?, type_transaction) do
-    cond do
-      past? and future? ->
-        {:error, :invalid_filter_combination}
+    if past? and future? do
+      {:error, :invalid_filter_combination}
+    else
+      with {:ok, wallet} <- get_wallet(user_id, wallet_id) do
+        query =
+          Entities.Transaction
+          |> FilterQueries.filter_by_wallet(wallet.id)
+          |> FilterQueries.filter_by_date(past?, future?)
+          |> FilterQueries.filter_by_type(type_transaction)
+          |> order_by(desc: :transaction_date)
+          |> limit(^FilterQueries.limit_quey_if_needed(limit))
 
-      true ->
-        with {:ok, wallet} <- get_wallet(user_id, wallet_id) do
-          query =
-            Transaction
-            |> FilterQueries.filter_by_wallet(wallet.id)
-            |> FilterQueries.filter_by_date(past?, future?)
-            |> FilterQueries.filter_by_type(type_transaction)
-            |> order_by(desc: :transaction_date)
-            |> limit(^FilterQueries.limit_quey_if_needed(limit))
-
-          {:ok, Repo.all(query)}
-        end
+        {:ok, Repo.all(query)}
+      end
     end
   end
 
   defp get_wallet(user_id, wallet_id) do
-    query = from(w in Wallet, where: w.user_id == ^user_id and w.id == ^wallet_id)
+    query = from(w in Entities.Wallet, where: w.user_id == ^user_id and w.id == ^wallet_id)
 
     case Repo.one(query) do
       nil -> {:error, :not_found}
@@ -78,7 +76,7 @@ defmodule GranaFlow.Services.Transaction do
 
         incomes_query =
           from(
-            t in Transaction,
+            t in Entities.Transaction,
             where:
               t.wallet_id == ^wallet.id and t.transaction_date <= ^today and t.type == "INCOME",
             select: coalesce(sum(t.amount), 0)
@@ -86,7 +84,7 @@ defmodule GranaFlow.Services.Transaction do
 
         outcomes_query =
           from(
-            t in Transaction,
+            t in Entities.Transaction,
             where:
               t.wallet_id == ^wallet.id and t.transaction_date <= ^today and t.type == "OUTCOME",
             select: coalesce(sum(t.amount), 0)
@@ -107,8 +105,8 @@ defmodule GranaFlow.Services.Transaction do
 
       full_report =
         Reports.fetch_transactions_for_period(wallet.id, start_date, end_date)
-      |> Reports.group_by_month()
-      |> Reports.build_annual_report()
+        |> Reports.group_by_month()
+        |> Reports.build_annual_report()
 
       {:ok, full_report}
     end
@@ -118,16 +116,20 @@ defmodule GranaFlow.Services.Transaction do
   def get_month_report(user_id, wallet_id, year, month) do
     with {:ok, wallet} <- get_wallet(user_id, wallet_id),
          {:ok, start_date, end_date} <- DatesParser.build_date_range(year, month),
-         {transactions_report, all_transactions} <- Reports.fetch_transactions_with_subtypes(wallet.id, start_date, end_date),
-         {total_income, total_outcome} <- Reports.calculate_income_and_outcome(transactions_report),
-         subtypes_report <- Reports.build_subtype_report(transactions_report, total_income, total_outcome) do
+         {transactions_report, all_transactions} <-
+           Reports.fetch_transactions_with_subtypes(wallet.id, start_date, end_date),
+         {total_income, total_outcome} <-
+           Reports.calculate_income_and_outcome(transactions_report),
+         subtypes_report <-
+           Reports.build_subtype_report(transactions_report, total_income, total_outcome) do
       {:ok,
        %{
          total_income: Decimal.to_string(total_income),
          total_outcome: Decimal.to_string(total_outcome),
          final_balance: Decimal.to_string(Decimal.sub(total_income, total_outcome)),
          subtypes: subtypes_report,
-         transactions: Enum.map(all_transactions, fn t -> Map.from_struct(t) |> Map.delete(:__meta__) end)
+         transactions:
+           Enum.map(all_transactions, fn t -> Map.from_struct(t) |> Map.delete(:__meta__) end)
        }}
     end
   end

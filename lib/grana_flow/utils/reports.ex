@@ -1,7 +1,7 @@
 defmodule GranaFlow.Utils.Reports do
   import Ecto.Query
+  alias GranaFlow.Entities.Transaction
   alias GranaFlow.Repo
-  alias GranaFlow.Transaction.Transaction
 
   @spec fetch_transactions_for_period(binary(), Date.t(), Date.t()) ::
           list({String.t(), Date.t(), Decimal.t()})
@@ -121,12 +121,12 @@ defmodule GranaFlow.Utils.Reports do
           "INCOME" ->
             if Decimal.equal?(total_income, 0),
               do: Decimal.new(0),
-              else: total |> Decimal.div(total_income) |> Decimal.mult(100)
+              else: Decimal.div(total, total_income) |> Decimal.mult(100)
 
           "OUTCOME" ->
             if Decimal.equal?(total_outcome, 0),
               do: Decimal.new(0),
-              else: total |> Decimal.div(total_outcome) |> Decimal.mult(100)
+              else: Decimal.div(total, total_outcome) |> Decimal.mult(100)
 
           _ ->
             Decimal.new(0)

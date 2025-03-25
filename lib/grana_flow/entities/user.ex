@@ -1,6 +1,15 @@
-defmodule GranaFlow.Accounts.User do
+defmodule GranaFlow.Entities.User do
   use Ecto.Schema
   import Ecto.Changeset
+
+  @type t :: %__MODULE__{
+    name: String.t(),
+    provider: String.t(),
+    email: String.t(),
+    avatar_url: String.t(),
+    provider_uid: String.t(),
+    premium: boolean()
+  }
 
   schema "users" do
     field :name, :string

@@ -40,7 +40,6 @@ defmodule GranaFlow.Utils.DatesParser do
               Date.end_of_month(first_of_month)
           end
         end
-        IO.inspect(next_month_date)
       do_get_months(next_month_date, end_date, start_day, [date | acc])
     end
   end

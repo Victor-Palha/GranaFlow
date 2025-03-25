@@ -1,7 +1,7 @@
 defmodule GranaFlowWeb.CustomSubtypeController do
   use GranaFlowWeb, :controller
 
-  alias GranaFlow.{Services}
+  alias GranaFlow.Services
 
   def create(conn, %{"custom_subtype" => custom_subtype_params}) do
     %{id: user_id} = Guardian.Plug.current_resource(conn)

@@ -1,5 +1,5 @@
 defmodule GranaFlow.Services.User do
-  alias GranaFlow.{Repo, Accounts.User}
+  alias GranaFlow.{Entities.User, Repo}
 
   @spec create(map()) :: {:ok, Ecto.Schema.t()} | {:error, Ecto.Changeset.t()}
   def create(attrs) do
@@ -23,22 +23,21 @@ defmodule GranaFlow.Services.User do
 
   @spec upgrade_profile(String.t()) :: {:error, :not_found} | {:ok, Ecto.Schema.t()}
   def upgrade_profile(user_id) do
-    with {:ok, user} <- get_by_id(user_id) do
-      user
-      |> User.changeset(%{})
-      |> Ecto.Changeset.put_change(:premium, true)
-      |> Repo.update()
-    else
+    case get_by_id(user_id) do
+      {:ok, user} ->
+        user
+        |> User.changeset(%{})
+        |> Ecto.Changeset.put_change(:premium, true)
+        |> Repo.update()
+
       _ -> {:error, :not_found}
     end
   end
 
-  @spec is_user_premium(String.t()) :: true | false
-  def is_user_premium(user_id) do
-    with {:ok, user} <- get_by_id(user_id) do
-      user.premium == true
-    else
-      _ -> false
+  @spec user_premium?(String.t()) :: true | false
+  def user_premium?(user_id) do
+    case get_by_id(user_id) do
+      {:ok, user} -> user.premium == true
     end
   end
 end

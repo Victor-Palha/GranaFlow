@@ -2,7 +2,8 @@ defmodule GranaFlowWeb.TransactionController do
   use GranaFlowWeb, :controller
   alias GranaFlow.Services.Transaction, as: TransactionService
   alias GranaFlow.Services.Wallet, as: WalletService
-  alias GranaFlow.Utils.{ParsesParams, DatesParser}
+  alias GranaFlow.Utils.DatesParser
+  alias GranaFlow.Utils.ParsesParams
 
   def create(conn, %{
     "name" => name,
@@ -62,7 +63,9 @@ defmodule GranaFlowWeb.TransactionController do
         |> json(%{message: "Carteira não encontrada..."})
 
       {:ok, _wallet} ->
-        with {:ok, start_dt, _} <- DateTime.from_iso8601(start_date), {:ok, end_dt, _} <- DateTime.from_iso8601(end_date) do
+        with {:ok, start_dt, _} <- DateTime.from_iso8601(start_date),
+            {:ok, end_dt, _} <- DateTime.from_iso8601(end_date) do
+
           days = DatesParser.generate_monthly_dates(start_dt, end_dt)
           transactions = Enum.map(days, fn date ->
               %{

@@ -1,4 +1,4 @@
-defmodule GranaFlow.Wallets.Wallet do
+defmodule GranaFlow.Entities.Wallet do
   use Ecto.Schema
   import Ecto.Changeset
 

@@ -1,4 +1,4 @@
-defmodule GranaFlow.Transaction.Transaction do
+defmodule GranaFlow.Entities.Transaction do
   use Ecto.Schema
   import Ecto.Changeset
 
