@@ -44,6 +44,16 @@ defmodule GranaFlowWeb.Router do
     post "/upgrade", PaymentController, :create
   end
 
+  scope "/api/premium", GranaFlowWeb do
+    pipe_through :api
+    pipe_through :auth
+    pipe_through :main
+    pipe_through :premium
+
+    post "/custom-subtypes", CustomSubtypeController, :create
+    get "/custom-subtypes", CustomSubtypeController, :all
+  end
+
 
   scope "/auth", GranaFlowWeb do
     pipe_through :api
