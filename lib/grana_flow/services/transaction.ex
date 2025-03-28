@@ -36,6 +36,17 @@ defmodule GranaFlow.Services.Transaction do
     end
   end
 
+  @spec delete_by_id(String.t()) :: {:ok, :deleted} | {:error, :not_found | :deletion_failed}
+  def delete_by_id(transaction_id) do
+    with {:ok, transaction} <- get_by_id(transaction_id),
+         {:ok, _} <- Repo.delete(transaction) do
+      {:ok, :deleted}
+    else
+      {:error, :not_found} -> {:error, :not_found}
+      _ -> {:error, :deletion_failed}
+    end
+  end
+
   @spec all(String.t(), String.t(), number() | nil, boolean(), boolean(), String.t() | nil) ::
           {:error, :not_found | :invalid_filter_combination} | {:ok, list(Ecto.Schema.t())}
   def all(user_id, wallet_id, limit, past?, future?, type_transaction) do

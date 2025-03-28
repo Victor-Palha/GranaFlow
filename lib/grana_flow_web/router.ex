@@ -47,7 +47,8 @@ defmodule GranaFlowWeb.Router do
     post "/transaction/single", TransactionController, :create
     post "/transaction/recurrent", TransactionController, :create_recurrent
     get "/transaction/balance", TransactionController, :balance
-    get "/transaction/:transaction_id", TransactionController, :get
+    get "/transaction/:transaction_id/:wallet_id", TransactionController, :get
+    delete "/transaction/:transaction_id/:wallet_id", TransactionController, :delete
     get "/transaction", TransactionController, :all
 
     post "/upgrade", PaymentController, :create
