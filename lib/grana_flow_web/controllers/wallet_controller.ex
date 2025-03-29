@@ -58,4 +58,24 @@ defmodule GranaFlowWeb.WalletController do
         |> json(%{wallets: wallets_mapped})
     end
   end
+
+  @spec edit(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def edit(conn, %{"wallet_name" => wallet_name, "wallet_id" => wallet_id}) do
+    %{id: user_id} = Guardian.Plug.current_resource(conn)
+
+    case WalletService.find_and_edit_name(wallet_id, user_id, wallet_name) do
+      {:ok, wallet} ->
+        conn
+        |> put_status(:ok)
+        |> json(%{message: "Carteira #{wallet.name} foi atualizada!"})
+      {:error, :not_found} ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{message: "Essa carteira não foi encontrada na sua conta!"})
+      {:error, changeset} ->
+        conn
+        |> put_status(:internal_server_error)
+        |> json(%{message: "Falha ao editar o nome da carteira :(", errors: changeset.errors})
+    end
+  end
 end

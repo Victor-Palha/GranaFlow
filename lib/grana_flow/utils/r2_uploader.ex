@@ -5,7 +5,6 @@ defmodule GranaFlow.Utils.R2Uploader do
   @bucket "ashchat-uploads"
   @base_url "https://static.victor-palha.com"
 
-
   def upload_file(file_path, object_name, content_type) do
     file_content = File.read!(file_path)
     unique_object_name = Uuid.generate_uuid() <> object_name

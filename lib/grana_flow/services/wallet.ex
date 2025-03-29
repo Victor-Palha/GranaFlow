@@ -70,4 +70,18 @@ defmodule GranaFlow.Services.Wallet do
       wallet -> {:ok, wallet}
     end
   end
+
+  @spec find_and_edit_name(number(), String.t(), String.t()) ::
+          {:ok, Ecto.Schema.t()} | {:error, :not_found} | {:error, Ecto.Changeset.t()}
+  def find_and_edit_name(wallet_id, user_id, wallet_new_name) do
+    case find_by_id(wallet_id, user_id) do
+      {:error, :not_found} ->
+        {:error, :not_found}
+
+      {:ok, wallet} ->
+        wallet
+        |> Wallet.changeset(%{name: wallet_new_name})
+        |> Repo.update()
+    end
+  end
 end
