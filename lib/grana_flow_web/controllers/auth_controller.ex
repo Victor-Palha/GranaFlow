@@ -24,7 +24,7 @@ defmodule GranaFlowWeb.AuthController do
         client_device = get_session(conn, :client) || "web"
         url_to_redirect = case client_device do
           "mobile" -> "exp://10.0.1.40:8081"
-          _ -> "http://localhost:5173"
+          _ -> "https://granaflow.onrender.com"
         end
 
         conn
