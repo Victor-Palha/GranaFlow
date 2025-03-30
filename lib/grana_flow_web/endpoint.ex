@@ -2,7 +2,7 @@ defmodule GranaFlowWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :grana_flow
 
     plug CORSPlug,
-      origin: ["http://localhost:5173", "exp://10.0.1.40:8081"],
+      origin: ["http://localhost:5173", "exp://10.0.1.40:8081", "https://granaflow.onrender.com"],
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
       headers: ["Authorization", "Content-Type"]
 

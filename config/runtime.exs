@@ -53,6 +53,10 @@ if config_env() == :prod do
     access_key_id: System.get_env("R2_ACCESS_KEY"),
     secret_access_key: System.get_env("R2_SECRET_KEY")
 
+  config :grana_flow, GranaFlow.Guardian,
+    issuer: "grana_flow",
+    secret_key: System.get_env("GUARDIAN_SECRET_KEY")
+
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
   # want to use a different value for prod and you most likely don't want
