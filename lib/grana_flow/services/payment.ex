@@ -1,7 +1,8 @@
 defmodule GranaFlow.Services.Payment do
   require Logger
 
-  @access_token System.get_env("MP_ACCESS_TOKEN")
+  @mp_access_token Application.compile_env(:grana_flow, __MODULE__)[:mp_access_token] ||
+  System.get_env("MP_ACCESS_TOKEN")
   @mp_api_url "https://api.mercadopago.com/v1/payments"
   @valid_topics ~w(merchant_order payment payment.created)
   @callback generate_premium_upgrade_url(GranaFlow.Entities.User.t()) :: {:ok, String.t()} | {:error, any()}
@@ -33,16 +34,16 @@ defmodule GranaFlow.Services.Payment do
         feature: "premium_upgrade"
       },
       back_urls: %{
-        success: "http://localhost:5173/account/success",
-        failure: "http://localhost:5173/account/error",
-        pending: "http://localhost:5173/account/pending"
+        success: "https://granaflow.onrender.com/account/success",
+        failure: "https://granaflow.onrender.com/account/error",
+        pending: "https://granaflow.onrender.com/account/pending"
       },
       auto_return: "approved",
-      notification_url: "https://deac-2804-d4b-9d0b-6c01-d195-6c2e-eac7-6a3a.ngrok-free.app/payment/notification"
+      notification_url: "https://grana-flow.fly.dev/payment/notification"
     }
 
     headers = [
-      {"Authorization", "Bearer #{@access_token}"},
+      {"Authorization", "Bearer #{@mp_access_token}"},
       {"Content-Type", "application/json"}
     ]
 
@@ -82,7 +83,7 @@ defmodule GranaFlow.Services.Payment do
 
   @spec fetch_resource_data(String.t(), String.t()) :: {:ok, map()} | {:error, String.t()}
   def fetch_resource_data("payment", id) do
-    headers = [{"Authorization", "Bearer #{@access_token}"}]
+    headers = [{"Authorization", "Bearer #{@mp_access_token}"}]
     url = "#{@mp_api_url}/#{id}"
 
     case HTTPoison.get(url, headers) do
