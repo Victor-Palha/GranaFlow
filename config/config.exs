@@ -45,6 +45,9 @@ config :grana_flow, GranaFlow.Guardian,
   issuer: "grana_flow",
   secret_key: System.get_env("GUARDIAN_SECRET_KEY")
 
+config :grana_flow, GranaFlow.Services.Payment,
+  mp_access_token: System.get_env("MP_ACCESS_TOKEN")
+
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",

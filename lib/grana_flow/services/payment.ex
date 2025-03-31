@@ -1,8 +1,6 @@
 defmodule GranaFlow.Services.Payment do
   require Logger
 
-  @mp_access_token Application.compile_env(:grana_flow, __MODULE__)[:mp_access_token] ||
-  System.get_env("MP_ACCESS_TOKEN")
   @mp_api_url "https://api.mercadopago.com/v1/payments"
   @valid_topics ~w(merchant_order payment payment.created)
   @callback generate_premium_upgrade_url(GranaFlow.Entities.User.t()) :: {:ok, String.t()} | {:error, any()}
@@ -43,7 +41,7 @@ defmodule GranaFlow.Services.Payment do
     }
 
     headers = [
-      {"Authorization", "Bearer #{@mp_access_token}"},
+      {"Authorization", "Bearer #{get_access_token()}"},
       {"Content-Type", "application/json"}
     ]
 
@@ -83,7 +81,7 @@ defmodule GranaFlow.Services.Payment do
 
   @spec fetch_resource_data(String.t(), String.t()) :: {:ok, map()} | {:error, String.t()}
   def fetch_resource_data("payment", id) do
-    headers = [{"Authorization", "Bearer #{@mp_access_token}"}]
+    headers = [{"Authorization", "Bearer #{get_access_token()}"}]
     url = "#{@mp_api_url}/#{id}"
 
     case HTTPoison.get(url, headers) do
@@ -129,4 +127,10 @@ defmodule GranaFlow.Services.Payment do
 
   def handle_notification(topic, _data),
     do: {:error, "Unsupported notification topic: #{topic}"}
+
+  defp get_access_token do
+    Application.get_env(:grana_flow, __MODULE__)[:mp_access_token] ||
+      System.get_env("MP_ACCESS_TOKEN") ||
+      raise "MP_ACCESS_TOKEN missing!"
+  end
 end
