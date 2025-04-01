@@ -144,4 +144,17 @@ defmodule GranaFlow.Services.Transaction do
        }}
     end
   end
+
+  @spec find_and_edit(String.t(), map()) :: {:ok, Ecto.Schema.t()} | {:error, Ecto.Changeset.t()} | {:error, :not_found}
+  def find_and_edit(transaction_id, transaction_information) do
+    case get_by_id(transaction_id) do
+      {:ok, transaction} ->
+        transaction
+        |> Entities.Transaction.changeset(transaction_information)
+        |> Repo.update()
+
+      {:error, :not_found} ->
+        {:error, :not_found}
+    end
+  end
 end

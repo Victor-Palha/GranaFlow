@@ -50,6 +50,7 @@ defmodule GranaFlowWeb.Router do
     get "/transaction/balance", TransactionController, :balance
     get "/transaction/:transaction_id/:wallet_id", TransactionController, :get
     delete "/transaction/:transaction_id/:wallet_id", TransactionController, :delete
+    patch "/transaction/:transaction_id/:wallet_id", TransactionController, :edit
     get "/transaction", TransactionController, :all
 
     post "/upgrade", PaymentController, :create

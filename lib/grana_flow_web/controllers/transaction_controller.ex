@@ -136,6 +136,36 @@ defmodule GranaFlowWeb.TransactionController do
     end
   end
 
+  def edit(
+        conn,
+        %{"transaction_id" => transaction_id, "wallet_id" => wallet_id} = transaction_params
+      ) do
+    %{id: user_id} = Guardian.Plug.current_resource(conn)
+
+    with {:ok, _} <- WalletService.find_by_id(wallet_id, user_id),
+         {:ok, updated_transaction} <-
+           TransactionService.find_and_edit(transaction_id, transaction_params) do
+      conn
+      |> put_status(:ok)
+      |> json(%{
+        message: "Transação atualizada com sucesso!",
+        transaction: Map.drop(updated_transaction, [:__meta__, :__struct__])
+      })
+    else
+      {:error, :not_found} ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{message: "Transação não encontrada :("})
+
+      {:error, %Ecto.Changeset{} = _} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{
+          message: "Dados inválidos na transação"
+        })
+    end
+  end
+
   def all(conn, %{"wallet_id" => wallet_id} = params) do
     %{id: user_id} = Guardian.Plug.current_resource(conn)
     limit = Map.get(params, "limit") |> ParsesParams.maybe_parse_int()
